@@ -6,13 +6,12 @@ from api.chatgpt import ChatGPT
 import os
 import logging
 
-# 設置日誌
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 line_handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
-working_status = os.getenv("DEFAULT_TALKING", default="true").lower() == "true"  # 修正拼寫
+working_status = os.getenv("DEFAULT_TALKING", default="true").lower() == "true"
 
 app = Flask(__name__)
 chatgpt = ChatGPT()
@@ -47,7 +46,6 @@ def handle_message(event):
         logger.info("Non-text message, skipping")
         return
     
-    # 去除首尾空白，處理可能的編碼問題
     message_text = event.message.text.strip()
     logger.info("Processed message text: '%s'", message_text)
     
