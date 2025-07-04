@@ -1,6 +1,11 @@
 import os
 import openai
+import logging
 from api.prompt import Prompt
+
+# 設置日誌
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
