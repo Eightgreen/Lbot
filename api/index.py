@@ -58,7 +58,7 @@ def handle_message(event):
         try:
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="我是時下流行的AI智能，目前可以為您服務囉，歡迎來跟我互動~"+ssssss))
+                TextSendMessage(text="我是時下流行的AI互動~"+ssssss))
             logger.info("Activation reply sent")
         except Exception as e:
             logger.error("Error sending activation reply: %s", str(e))
