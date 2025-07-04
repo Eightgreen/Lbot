@@ -6,9 +6,12 @@ from api.chatgpt import ChatGPT
 import os
 import logging
 
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+ssssss = os.getenv("OPENAI_API_KEY")
 line_bot_api = LineBotApi(os.getenv("LINE_CHANNEL_ACCESS_TOKEN"))
 line_handler = WebhookHandler(os.getenv("LINE_CHANNEL_SECRET"))
 working_status = os.getenv("DEFAULT_TALKING", default="true").lower() == "true"
@@ -55,7 +58,7 @@ def handle_message(event):
         try:
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text="我是時下流行的AI智能，目前可以為您服務囉，歡迎來跟我互動~"))
+                TextSendMessage(text="我是時下流行的AI智能，目前可以為您服務囉，歡迎來跟我互動~"+ssssss))
             logger.info("Activation reply sent")
         except Exception as e:
             logger.error("Error sending activation reply: %s", str(e))
