@@ -25,10 +25,10 @@ class ChatGPT:
             )
             return response.choices[0].message.content.strip()
         except openai.OpenAIError as e:
-            print(f"OpenAI API error: {str(e)}")
+            logger.error(f"OpenAI API error: {str(e)}")
             return "抱歉，我現在無法回應，請稍後再試。"
         except Exception as e:
-            print(f"Unexpected error: {str(e)}")
+            logger.error(f"Unexpected error: {str(e)}")
             return "抱歉，發生未知錯誤，請稍後再試。"
 
     def add_msg(self, text):
