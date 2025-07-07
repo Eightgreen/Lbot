@@ -25,8 +25,7 @@ class ChatGPT:
                     {"role": "user", "content": self.prompt.generate_prompt()}
                 ],
                 temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                proxies=None  # 顯式禁用代理
+                max_tokens=self.max_tokens
             )
             return response.choices[0].message.content.strip()
         except openai.OpenAIError as e:
