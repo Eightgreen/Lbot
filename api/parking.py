@@ -60,7 +60,7 @@ class ParkingFinder:
 
     def _map_city(self, address):
         """將中文地址映射為 TDX API 的城市代碼"""
-        # 簡化的城市映射表，僅包含常用城市
+        # 簡化城市映射表，僅包含常用城市
         city_mapping = {"台北": "Taipei", "新北": "NewTaipei", "桃園": "Taoyuan", "台中": "Taichung"}
         # 返回第一個匹配的城市代碼，預設為 Taipei
         return next((value for key, value in city_mapping.items() if key in address), "Taipei")
@@ -68,13 +68,13 @@ class ParkingFinder:
     def _get_parking_segments(self, city, address):
         """查詢指定城市的路段代碼和名稱，支援模糊查詢"""
         # 構建 TDX API URL，用於查詢路段資料
-        url = f"https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSegment/City/{city}"
+        url = "https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSegment/City/{}".format(city)
         # 設定查詢參數：JSON 格式，最多 100 筆，僅選代碼和名稱
         params = {"$format": "JSON", "$top": 100, "$select": "ParkingSegmentID,ParkingSegmentName"}
         if address:
             # 若有地址，進行模糊查詢（去除「巷」後的內容）
             filter_key = address.split("巷")[0] if "巷" in address else address
-            params["$filter"] = f"contains(ParkingSegmentName/Zh_tw,'{filter_key}')"
+            params["$filter"] = "contains(ParkingSegmentName/Zh_tw,'{}')".format(filter_key)
         try:
             # 發送 GET 請求並解析 JSON 回應
             response = requests.get(url, params=params)
@@ -82,19 +82,21 @@ class ParkingFinder:
             return response.json()
         except Exception as e:
             # 記錄錯誤並返回 None
-            logger.error(f"查詢路段失敗: {str(e)}")
+            logger.error("查詢路段失敗: {}".format(str(e)))
             return None
 
     def _get_parking_spots(self, city, segment_ids):
         """查詢指定路段的空車位編號"""
         # 構建 TDX API URL，用於查詢車位動態資料
-        url = f"https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSpotAvailability/City/{city}"
+        url = "https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSpotAvailability/City/{}".format(city)
         # 設定查詢參數：JSON 格式，最多 100 筆，僅選必要欄位，過濾空車位
         params = {
             "$format": "JSON",
             "$top": 100,
             "$select": "ParkingSpotID,ParkingSegmentID,SpotStatus,DataCollectTime",
-            "$filter": f"ParkingSegmentID in ({','.join(f"'{id}'" for id in segment_ids)}) and SpotStatus eq 2"
+            # 使用 .format() 避免嵌套 f-string
+            "$filter": "ParkingSegmentID in ({}) and SpotStatus eq 2".format(
+                ','.join(["'" + id + "'" for id in segment_ids]))
         }
         try:
             # 發送 GET 請求並解析 JSON 回應
@@ -103,7 +105,7 @@ class ParkingFinder:
             return response.json()
         except Exception as e:
             # 記錄錯誤並返回 None
-            logger.error(f"查詢車位失敗: {str(e)}")
+            logger.error("查詢車位失敗: {}".format(str(e)))
             return None
 
     def find_grouped_parking_spots(self, address):
@@ -115,7 +117,7 @@ class ParkingFinder:
 
         # 檢查路段資料是否有效
         if not segment_data or "ParkingSegments" not in segment_data:
-            return f"找不到 {address} 的路段資料，請嘗試其他地址。"
+            return "找不到 {} 的路段資料，請嘗試其他地址。".format(address)
 
         # 提取路段代碼
         segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"]]
@@ -124,7 +126,7 @@ class ParkingFinder:
 
         # 檢查車位資料是否有效
         if not spot_data or "CurbSpotParkingAvailabilities" not in spot_data:
-            return f"目前 {address} 無空車位資料，請稍後再試。"
+            return "目前 {} 無空車位資料，請稍後再試。".format(address)
 
         # 初始化分組結果
         grouped_spots = {}
@@ -162,15 +164,16 @@ class ParkingFinder:
 
         # 若無空車位，返回提示
         if not grouped_spots:
-            return f"目前 {address} 無空車位資料，請稍後再試。"
+            return "目前 {} 無空車位資料，請稍後再試。".format(address)
 
         # 格式化回應文字
-        response_text = f"{address} 的分組車位資訊：\n"
+        response_text = " {} 的分組車位資訊：\n".format(address)
         for segment_id, segment_info in grouped_spots.items():
-            response_text += f"路段: {segment_info['name']} (代碼: {segment_id})\n"
+            response_text += "路段: {} (代碼: {})\n".format(segment_info["name"], segment_id)
             for group_name, spots in segment_info["groups"].items():
-                response_text += f"  分組: {group_name}\n"
+                response_text += "  分組: {}\n".format(group_name)
                 for idx, spot in enumerate(spots[:5], 1):  # 每組最多顯示 5 個車位
-                    response_text += f"    {idx}. 車格: {spot['number']} (ID: {spot['spot_id']})，狀態: {spot['status']}，更新時間: {spot['collect_time']}\n"
+                    response_text += "    {}. 車格: {} (ID: {})，狀態: {}，更新時間: {}\n".format(
+                        idx, spot["number"], spot["spot_id"], spot["status"], spot["collect_time"])
 
         return response_text

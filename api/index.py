@@ -39,7 +39,7 @@ def callback():
         abort(400)
     except Exception as e:
         # 記錄其他錯誤並返回 500
-        logger.error(f"Webhook 錯誤: {str(e)}")
+        logger.error("Webhook 錯誤: {}".format(str(e)))
         abort(500)
     return 'OK'
 
@@ -76,19 +76,19 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
         except Exception as e:
             # 處理錯誤，返回友善提示
-            logger.error(f"查詢分組車位錯誤: {str(e)}")
+            logger.error("查詢分組車位錯誤: {}".format(str(e)))
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢分組車位失敗，請稍後再試！"))
         return
 
     if working_status:
         # 處理一般 AI 回應
         try:
-            chatgpt.add_msg(f"Human:{message_text}?\n")
+            chatgpt.add_msg("Human: {}?\n".format(message_text))
             reply_msg = chatgpt.get_response().replace("AI:", "", 1)
-            chatgpt.add_msg(f"AI:{reply_msg}\n")
+            chatgpt.add_msg("AI: {}\n".format(reply_msg))
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
         except Exception as e:
-            logger.error(f"AI 回應錯誤: {str(e)}")
+            logger.error("AI 回應錯誤: {}".format(str(e)))
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI回應失敗，請稍後再試！"))
 
 
