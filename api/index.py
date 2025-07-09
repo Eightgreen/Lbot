@@ -38,8 +38,8 @@ def callback():
         # 簽名驗證失敗，返回 400
         abort(400)
     except Exception as e:
-        # 其他錯誤，記錄並返回 500
-        logger.error(f"Webhook error: {str(e)}")
+        # 記錄其他錯誤並返回 500
+        logger.error(f"Webhook 錯誤: {str(e)}")
         abort(500)
     return 'OK'
 
@@ -51,20 +51,20 @@ def handle_message(event):
     message_text = event.message.text.strip()
 
     if message_text == "啟動":
-        # 啟動 AI 模式
+        # 啟動 AI 回應模式
         working_status = True
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI智能已啟動，歡迎互動~"))
         return
 
     if message_text == "安靜":
-        # 關閉 AI 模式
+        # 關閉 AI 回應模式
         working_status = False
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="感謝使用，請說「啟動」重新開啟~"))
         return
 
-    if message_text.startswith("停車"):
+    if message_text.startswith("查分組車位"):
         # 處理查詢分組車位指令
-        address = message_text.replace("停車", "").strip()
+        address = message_text.replace("查分組車位", "").strip()
         if not address:
             # 若無地址，返回提示
             line_bot_api.reply_message(event.reply_token,
@@ -75,8 +75,8 @@ def handle_message(event):
             reply_msg = parking_finder.find_grouped_parking_spots(address)
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
         except Exception as e:
-            # 錯誤處理，返回提示
-            logger.error(f"Error in grouped parking: {str(e)}")
+            # 處理錯誤，返回友善提示
+            logger.error(f"查詢分組車位錯誤: {str(e)}")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢分組車位失敗，請稍後再試！"))
         return
 
@@ -88,7 +88,7 @@ def handle_message(event):
             chatgpt.add_msg(f"AI:{reply_msg}\n")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
         except Exception as e:
-            logger.error(f"Error in AI response: {str(e)}")
+            logger.error(f"AI 回應錯誤: {str(e)}")
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI回應失敗，請稍後再試！"))
 
 

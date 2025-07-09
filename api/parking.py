@@ -2,16 +2,18 @@ import os
 import requests
 import logging
 
+# 設置日誌記錄，方便除錯
 logger = logging.getLogger(__name__)
 
 
 class ParkingFinder:
     def __init__(self):
         """初始化 ParkingFinder，設定預設城市和車格分組配置"""
-        # 預設家鄉地址，影響城市映射
-        self.home_address = os.getenv("HOME_ADDRESS", "回家")
+        # 從環境變數獲取預設地址，預設為台北市中正區
+        self.home_address = os.getenv("HOME_ADDRESS", "台北市中正區")
+        # 根據地址映射城市
         self.home_city = self._map_city(self.home_address)
-        # 分組配置：每個路段的分組包含自定義名稱和逐一列舉的車格號碼
+        # 分組配置：每個路段包含自定義分組名稱和逐一列舉的車格號碼
         self.group_config = {
             "1124337": [  # 明德路337巷
                 {"name": "前段",
@@ -58,19 +60,19 @@ class ParkingFinder:
 
     def _map_city(self, address):
         """將中文地址映射為 TDX API 的城市代碼"""
-        # 定義城市映射表，僅包含必要城市以精簡程式碼
+        # 簡化的城市映射表，僅包含常用城市
         city_mapping = {"台北": "Taipei", "新北": "NewTaipei", "桃園": "Taoyuan", "台中": "Taichung"}
-        # 返回匹配的城市代碼，預設為 Taipei
+        # 返回第一個匹配的城市代碼，預設為 Taipei
         return next((value for key, value in city_mapping.items() if key in address), "Taipei")
 
     def _get_parking_segments(self, city, address):
         """查詢指定城市的路段代碼和名稱，支援模糊查詢"""
-        # 構建 TDX API URL，查詢路段資料
+        # 構建 TDX API URL，用於查詢路段資料
         url = f"https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSegment/City/{city}"
         # 設定查詢參數：JSON 格式，最多 100 筆，僅選代碼和名稱
         params = {"$format": "JSON", "$top": 100, "$select": "ParkingSegmentID,ParkingSegmentName"}
-        # 若提供地址，添加過濾條件，支援模糊查詢（去除「巷」後的內容）
         if address:
+            # 若有地址，進行模糊查詢（去除「巷」後的內容）
             filter_key = address.split("巷")[0] if "巷" in address else address
             params["$filter"] = f"contains(ParkingSegmentName/Zh_tw,'{filter_key}')"
         try:
@@ -80,12 +82,12 @@ class ParkingFinder:
             return response.json()
         except Exception as e:
             # 記錄錯誤並返回 None
-            logger.error(f"Failed to fetch parking segments: {str(e)}")
+            logger.error(f"查詢路段失敗: {str(e)}")
             return None
 
     def _get_parking_spots(self, city, segment_ids):
         """查詢指定路段的空車位編號"""
-        # 構建 TDX API URL，查詢車位動態資料
+        # 構建 TDX API URL，用於查詢車位動態資料
         url = f"https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSpotAvailability/City/{city}"
         # 設定查詢參數：JSON 格式，最多 100 筆，僅選必要欄位，過濾空車位
         params = {
@@ -101,26 +103,26 @@ class ParkingFinder:
             return response.json()
         except Exception as e:
             # 記錄錯誤並返回 None
-            logger.error(f"Failed to fetch parking spots: {str(e)}")
+            logger.error(f"查詢車位失敗: {str(e)}")
             return None
 
     def find_grouped_parking_spots(self, address):
         """查詢指定地址的空車位並按分組顯示"""
         # 映射地址到城市代碼
         city = self._map_city(address)
-        # 查詢路段代碼
+        # 查詢路段資料
         segment_data = self._get_parking_segments(city, address)
 
-        # 檢查是否成功獲取路段資料，若失敗嘗試模糊查詢
+        # 檢查路段資料是否有效
         if not segment_data or "ParkingSegments" not in segment_data:
-            return f"找不到 {address} 的路段資料，請嘗試更廣泛的地址（如 '{address.split('巷')[0]}'）。"
+            return f"找不到 {address} 的路段資料，請嘗試其他地址。"
 
-        # 提取路段代碼列表
+        # 提取路段代碼
         segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"]]
         # 查詢空車位資料
         spot_data = self._get_parking_spots(city, segment_ids)
 
-        # 檢查是否成功獲取車位資料
+        # 檢查車位資料是否有效
         if not spot_data or "CurbSpotParkingAvailabilities" not in spot_data:
             return f"目前 {address} 無空車位資料，請稍後再試。"
 
@@ -129,7 +131,7 @@ class ParkingFinder:
         for spot in spot_data.get("CurbSpotParkingAvailabilities", []):
             segment_id = spot.get("ParkingSegmentID")
             spot_id = spot.get("ParkingSpotID")
-            # 提取車格號碼，假設 ParkingSpotID 後三位為車格號碼
+            # 假設 ParkingSpotID 後三位為車格號碼
             try:
                 spot_number = int(spot_id[-3:]) if spot_id[-3:].isdigit() else 0
             except ValueError:
@@ -148,7 +150,7 @@ class ParkingFinder:
                                      s["ParkingSegmentID"] == segment_id), "未知路段")
                 grouped_spots[segment_id] = {"name": segment_name, "groups": {}}
 
-            # 添加車位到對應分組
+            # 將車位添加到分組
             if group_name not in grouped_spots[segment_id]["groups"]:
                 grouped_spots[segment_id]["groups"][group_name] = []
             grouped_spots[segment_id]["groups"][group_name].append({
