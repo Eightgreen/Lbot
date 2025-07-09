@@ -62,13 +62,12 @@ def handle_message(event):
         line_bot_api.reply_message(event.reply_token, TextSendMessage(text="感謝使用，請說「啟動」重新開啟~"))
         return
 
-    if message_text.startswith("查分組車位"):
-        # 處理查詢分組車位指令
-        address = message_text.replace("查分組車位", "").strip()
+    if message_text.startswith("停車"):
+        # 處理停車查詢指令
+        address = message_text.replace("停車", "").strip()
         if not address:
             # 若無地址，返回提示
-            line_bot_api.reply_message(event.reply_token,
-                                       TextSendMessage(text="請提供路段地址，例如：查分組車位 明德路337巷"))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="請提供路段地址，例如：停車 明德路337巷"))
             return
         try:
             # 調用 ParkingFinder 查詢分組車位
@@ -76,8 +75,8 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply_msg))
         except Exception as e:
             # 處理錯誤，返回友善提示
-            logger.error("查詢分組車位錯誤: {}".format(str(e)))
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢分組車位失敗，請稍後再試！"))
+            logger.error("查詢停車位錯誤: {}".format(str(e)))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢停車位失敗，請稍後再試！"))
         return
 
     if working_status:
