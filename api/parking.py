@@ -332,6 +332,9 @@ class ParkingFinder:
                              segment_data["ParkingSegments"]}
             for seg_id in segment_ids:
                 segment_groups[seg_id] = [g["name"] for g in self.group_config.get(seg_id, [])]
+                # 若無群組定義，假設全段
+                if not segment_groups[seg_id]:
+                    segment_groups[seg_id] = ["全段"]
 
         # 查詢空車位資料
         spot_data = self._get_parking_spots(city, segment_ids)
@@ -349,13 +352,13 @@ class ParkingFinder:
             spot_number = int(match.group(1)) if match else 0
 
             # 查找對應群組名稱
-            group_name = "未知分組"
+            group_name = "全段"  # 預設為全段，適用於模糊查詢的路段
             for group in self.group_config.get(segment_id, []):
                 if spot_number in group["spots"]:
                     group_name = group["name"]
                     break
 
-            # 僅處理指定群組（若為自訂集合）
+            # 僅處理指定群組（若為自訂集合或有群組定義）
             if segment_id in segment_groups and group_name not in segment_groups[segment_id]:
                 continue
 
