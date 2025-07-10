@@ -43,8 +43,8 @@ class ParkingFinder:
 
         # 從環境變數獲取預設地址，預設為台北市中正區
         self.home_address = os.getenv("HOME_ADDRESS", "臺北市中正區")
-        # 根據地址映射城市
-        self.home_city = self._map_city(self.home_address)
+        # 根據預設地址映射城市
+        self.home_city = self._map_city(self.home_address)[0]
         # 地址到路段代碼的硬編碼映射表，支援模糊查詢並減少 API 呼叫
         self.address_to_segment = {
             "明德路337巷": ["1124337"],
@@ -128,7 +128,7 @@ class ParkingFinder:
         }
 
     def _map_city(self, address):
-        # 將中文地址映射為 TDX API 的城市代碼，若無匹配則預設為臺北市
+        # 將地址解析為 TDX API 的城市代碼和剩餘地址，若無匹配城市則預設為 Taipei
         city_mapping = {
             "NewTaipei": "新北市",
             "YilanCounty": "宜蘭縣",
@@ -153,10 +153,14 @@ class ParkingFinder:
             "NantouCounty": "南投縣",
             "Tainan": "臺南市"
         }
+        # 檢查地址是否包含城市名稱
         for city_code, city_name in city_mapping.items():
             if city_name in address:
-                return city_code
-        return "Taipei"
+                # 移除城市名稱，取得剩餘地址
+                remaining_address = address.replace(city_name, "").strip()
+                return city_code, remaining_address
+        # 若無匹配，預設為 Taipei
+        return "Taipei", address
 
     def _get_parking_segments(self, city, address):
         # 通過模糊查詢獲取路段代碼和名稱
@@ -299,13 +303,15 @@ class ParkingFinder:
 
     def find_grouped_parking_spots(self, address):
         # 查詢指定地址或自訂集合的空車位並按分組顯示，包含最高車格號
-        city = self._map_city(address)
+        # 先解析城市代碼和剩餘地址
+        city, remaining_address = self._map_city(address)
+
         segment_ids = []
         segment_groups = {}  # 儲存路段和指定群組 {segment_id: [group_name]}
 
         # 檢查是否為自訂集合或單一地址
-        if address in self.address_to_segment:
-            for item in self.address_to_segment[address]:
+        if remaining_address in self.address_to_segment:
+            for item in self.address_to_segment[remaining_address]:
                 if ":" in item:
                     # 自訂集合中的特定群組，例如 "1335000:後段右側"
                     seg_id, group_name = item.split(":")
@@ -317,10 +323,10 @@ class ParkingFinder:
                     segment_groups[item] = [g["name"] for g in self.group_config.get(item, [])]
         else:
             # 模糊查詢未知地址
-            segment_data = self._get_parking_segments(city, address)
+            segment_data = self._get_parking_segments(city, remaining_address)
             if not segment_data or "ParkingSegments" not in segment_data:
                 supported_addresses = ", ".join(self.address_to_segment.keys())
-                return "找不到 {} 的路段資料，請嘗試以下地址：{}。".format(address, supported_addresses)
+                return "找不到 {} 的路段資料，請嘗試以下地址：{}。".format(remaining_address, supported_addresses)
             segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"]]
             segment_names = {s["ParkingSegmentID"]: s["ParkingSegmentName"]["Zh_tw"] for s in
                              segment_data["ParkingSegments"]}
@@ -331,7 +337,7 @@ class ParkingFinder:
         spot_data = self._get_parking_spots(city, segment_ids)
 
         if not spot_data or "CurbSpotParkingAvailabilities" not in spot_data:
-            return "目前 {} 無空車位資料，請稍後再試。".format(address)
+            return "目前 {} 無空車位資料，請稍後再試。".format(remaining_address)
 
         # 初始化分組結果
         grouped_spots = {}
@@ -371,10 +377,10 @@ class ParkingFinder:
 
         # 若無空車位，返回提示
         if not grouped_spots or all(len(info["groups"]) == 0 for info in grouped_spots.values()):
-            return "目前 {} 無空車位資料，請稍後再試。".format(address)
+            return "目前 {} 無空車位資料，請稍後再試。".format(remaining_address)
 
         # 格式化回應文字
-        response_text = " {} 的空車位資訊：\n".format(address)
+        response_text = " {} 的空車位資訊：\n".format(remaining_address)
         for segment_id, segment_info in grouped_spots.items():
             # 查詢該路段的最高車格號
             max_spot_number = self.get_max_spot_number(city, segment_id)
