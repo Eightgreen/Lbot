@@ -359,4 +359,3 @@ class ParkingFinder:
                         response_text += f"    {idx}. 車格: {spot['number']} (ID: {spot['spot_id']})，狀態: {spot['status']}，更新時間: {spot['collect_time']}\n"
 
         return response_text
-```
