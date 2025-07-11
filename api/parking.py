@@ -58,45 +58,54 @@ class ParkingFinder:
             "榮華二路19巷8弄": ["1131198"],
             "裕民": ["1335000", "1335114", "114100A", "1141049"],
             "明德": ["1124337", "1124000", "112400A"],
-            "回家": ["1124337", "112400A", "1335000:後段右側"]  # 自訂集合：明德路337巷全段 + 明德路A全段 + 裕民六路後段右側
+            "回家": ["1124337","1124000", "112400A", "1335000", "1335114", "114100A", "1141049", "1131000", "1131198"] ,
+            "回家計次": [ "1335114", "114100A", "1131000", "1131198"]  # 自訂集合：明德路337巷全段 + 明德路A全段 + 裕民六路後段右側
         }
         # 分組配置：每個路段包含自定義群組名稱和車格號範圍
         self.group_config = {
             "1124337": [  # 明德路337巷
-                {"name": "前段", "spots": list(range(1, 26))},
-                {"name": "中段", "spots": list(range(26, 51))},
-                {"name": "後段", "spots": list(range(51, 68))},
-                {"name": "國小旁邊", "spots": [10, 11, 12, 13, 14, 15]}  # 自訂別稱
+                {"name": "前段北護側", "spots": list(range(1, 27))},
+                {"name": "中段北護側", "spots": list(range(29, 44))},
+                {"name": "後段北護側", "spots": list(range(45, 49))},
+                {"name": "前段住戶側", "spots": list(range(69, 76))},
+                {"name": "中段住戶側", "spots": list(range(61, 68))},
+                {"name": "後段住戶側", "spots": list(range(50, 57))},
             ],
             "1124000": [  # 明德路
-                {"name": "中段", "spots": list(range(67, 94))},
-                {"name": "後段", "spots": list(range(110, 120))}
+                {"name": "振興一側", "spots": list(range(67, 93))},
+                {"name": "住戶側貨車停車格", "spots": list(range(119, 119))},
+                {"name": "北護一側", "spots": list(range(110, 117))}
             ],
             "112400A": [  # 明德路A
-                {"name": "中段", "spots": list(range(62, 66))},
-                {"name": "後段", "spots": list(range(119, 125))}
+                {"name": "前段振興側", "spots": list(range(62, 65))},
+                {"name": "前段住戶側", "spots": list(range(119, 125))},
+                {"name": "後段振興側", "spots": list(range(60, 60))},
+                {"name": "後段住戶側", "spots": list(range(125,128))}
             ],
             "1335000": [  # 裕民六路
-                {"name": "前段左側", "spots": list(range(1, 19))},
-                {"name": "後段右側", "spots": list(range(19, 37))}
+                {"name": "萊爾富", "spots": list[18,19,20,25,26,27,39]},
+                {"name": "捷運那段", "spots": list[range(28, 38),1,2]}
             ],
             "1335114": [  # 裕民六路114巷
-                {"name": "前段", "spots": list(range(6, 15))},
-                {"name": "後段", "spots": list(range(15, 24))}
+                {"name": "50元萊爾富", "spots": list(range(1, 2))},
+                {"name": "50元7-11側", "spots": list(range(6, 14))},
+                {"name": "50元停車場側", "spots": list(range(15, 24))}
             ],
             "114100A": [  # 裕民二路
-                {"name": "前段", "spots": list(range(5, 22))},
-                {"name": "後段", "spots": list(range(22, 39))}
+                {"name": "50元停車場段", "spots": list[range(5,11),range(44,51),range(34,38)]},
+                {"name": "50元熱炒店對面", "spots": list[range(25,33)]},
+                {"name": "50元熱炒店", "spots": list(range(12, 22))}
             ],
             "1141049": [  # 裕民二路49巷
                 {"name": "全段", "spots": list(range(1, 12))}
             ],
             "1131000": [  # 奎山國小周邊
-                {"name": "前段", "spots": list(range(10, 19))},
-                {"name": "後段", "spots": list(range(19, 28))}
+                {"name": "50元國小後面", "spots": list(range(10, 19))},
+                {"name": "50元小巷", "spots": list(range(21, 26))},
+                {"name": "50元國小後面左轉", "spots": list(range(27, 29))}
             ],
             "1131198": [  # 榮華二路19巷8弄
-                {"name": "全段", "spots": [1, 2]}
+                {"name": "50元國小後面住戶", "spots": [1, 2]}
             ]
         }
 
