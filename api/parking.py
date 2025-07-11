@@ -559,7 +559,7 @@ class ParkingFinder:
         return max_spot_numbers
 
     def find_grouped_parking_spots(self, address):
-        # 查詢指定地址或自訂集合的空車位並按分組顯示，包含最高車格號
+        # 查詢指定地址或自訂集合的空車位，按空車位數量排序，包含路段和自定義群組名稱
         # 確保輸入為字串
         if not isinstance(address, str):
             logger.error("地址輸入無效: 必須是字串，收到 {}".format(type(address)))
@@ -606,11 +606,8 @@ class ParkingFinder:
         if isinstance(spot_data, dict) and spot_data.get("status") == "no_available_spots":
             return "目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address)
 
-        # 查詢多路段的最高車格號
-        max_spot_numbers = self.get_max_spot_numbers(city, segment_ids)
-
-        # 初始化分組結果
-        grouped_spots = {}
+        # 初始化路段結果，計算每個群組的空車位數量和車格號
+        segment_spots = {}
         for spot in spot_data.get("CurbSpotParkingAvailabilities", []):
             segment_id = spot.get("ParkingSegmentID")
             spot_id = spot.get("ParkingSpotID")
@@ -637,41 +634,47 @@ class ParkingFinder:
                 continue
 
             # 初始化路段資料結構
-            if segment_id not in grouped_spots:
+            if segment_id not in segment_spots:
                 segment_name = self._get_segment_name(city, segment_id)
                 if "未知路段" in segment_name and "(API 速率限制)" in segment_name:
                     return "無法查詢 {} 的空車位資料：API 速率限制，請稍後再試。".format(remaining_address)
                 if "未知路段" in segment_name:
                     return "無法查詢 {} 的空車位資料：路段名稱查詢失敗，請檢查網路或稍後再試。".format(remaining_address)
-                grouped_spots[segment_id] = {"name": segment_name, "groups": {}}
+                segment_spots[segment_id] = {
+                    "name": segment_name,
+                    "groups": {},
+                    "total_count": 0
+                }
 
-            # 僅添加空車位到分組
+            # 添加空車位到群組
             if spot.get("SpotStatus") == 2:
-                if group_name not in grouped_spots[segment_id]["groups"]:
-                    grouped_spots[segment_id]["groups"][group_name] = []
-                grouped_spots[segment_id]["groups"][group_name].append({
-                    "spot_id": spot_id,
-                    "number": spot_number,
-                    "status": "空位",
-                    "collect_time": spot.get("DataCollectTime")
-                })
+                if group_name not in segment_spots[segment_id]["groups"]:
+                    segment_spots[segment_id]["groups"][group_name] = {
+                        "spot_numbers": [],
+                        "count": 0
+                    }
+                segment_spots[segment_id]["groups"][group_name]["spot_numbers"].append(spot_number)
+                segment_spots[segment_id]["groups"][group_name]["count"] += 1
+                segment_spots[segment_id]["total_count"] += 1
 
         # 若無空車位，返回提示
-        if not grouped_spots or all(len(info["groups"]) == 0 for info in grouped_spots.values()):
+        if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()):
             return "目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address)
+
+        # 按路段的總空車位數量排序
+        sorted_segments = sorted(segment_spots.items(), key=lambda x: x[1]["total_count"], reverse=True)
 
         # 格式化回應文字
         response_text = " {} 的空車位資訊：\n".format(remaining_address)
-        for segment_id, segment_info in grouped_spots.items():
-            # 使用查詢到的最高車格號
-            max_spot_number = max_spot_numbers.get(segment_id, 0)
-            if segment_info["groups"]:
-                response_text += "路段: {} (代碼: {}，最高車格號: {})\n".format(
-                    segment_info["name"], segment_id, max_spot_number)
-                for group_name, spots in segment_info["groups"].items():
-                    response_text += "  分組: {}\n".format(group_name)
-                    for idx, spot in enumerate(spots[:5], 1):  # 每組最多顯示 5 個車位
-                        response_text += "    {}. 車格: {} (ID: {}), 狀態: {}, 更新時間: {}\n".format(
-                            idx, spot["number"], spot["spot_id"], spot["status"], spot["collect_time"])
+        for segment_id, segment_info in sorted_segments:
+            if segment_info["total_count"] > 0:  # 只顯示有空車位的路段
+                response_text += "路段: {}\n".format(segment_info["name"])
+                # 按群組的空車位數量排序
+                sorted_groups = sorted(segment_info["groups"].items(), key=lambda x: x[1]["count"], reverse=True)
+                for group_name, group_info in sorted_groups:
+                    if group_info["count"] > 0:  # 只顯示有空車位的群組
+                        spot_numbers = sorted(group_info["spot_numbers"])  # 排序車格號
+                        response_text += "  {}，空車位數量: {}，車格號: {}\n".format(
+                            group_name, group_info["count"], ", ".join(str(num) for num in spot_numbers))
 
         return response_text
