@@ -120,9 +120,9 @@ class ParkingFinder:
                 {"name": "50元停車場側", "spots": list(range(15, 24))}
             ],
             "114100A": [  # 裕民二路
-                {"name": "50元停車場段", "spots": list(chain(range(5, 11), range(44, 49), range(34, 38)))+[51]},
+                {"name": "50元停車場段", "spots": list(chain(range(5, 11), range(34, 38), range(44, 49), [51]))},
                 {"name": "50元熱炒店對面", "spots": list(range(25, 33))},
-                {"name": "50元熱炒店", "spots": list(range(14, 22))+[12]}
+                {"name": "50元熱炒店", "spots": list(chain([12], range(14, 22)))},
             ],
             "1141049": [  # 裕民二路49巷
                 {"name": "全段", "spots": list(range(1, 12))}
