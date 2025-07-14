@@ -6,7 +6,7 @@ import time
 import re
 from itertools import chain
 from datetime import datetime, timezone
-from config import address_to_segment, group_config
+from .config import address_to_segment, group_config
 
 # 設置日誌記錄，方便除錯
 logger = logging.getLogger(__name__)
@@ -151,13 +151,13 @@ class ParkingFinder:
                     if e.response.status_code == 429:
                         logger.error("模糊查詢路段失敗 (關鍵字: {}): API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(filter_key, attempt + 1))
                         if attempt < 2:
-                            time.sleep(2)  # 延遲 2 秒後重試
+                            time.sleep(5)  # 增加延遲至 5 秒
                             continue
                         return {"error": "API 速率限制，請稍後再試", "api_response": {}}
                     elif e.response.status_code == 500:
                         logger.error("模糊查詢路段失敗 (關鍵字: {}): 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(filter_key, attempt + 1))
                         if attempt < 2:
-                            time.sleep(2)
+                            time.sleep(5)
                             continue
                         try:
                             return {"error": "伺服器錯誤，請稍後再試", "api_response": e.response.json()}
@@ -171,7 +171,7 @@ class ParkingFinder:
                 except requests.exceptions.RequestException as e:
                     logger.error("模糊查詢路段失敗 (關鍵字: {}): {}".format(filter_key, str(e)))
                     if attempt < 2:
-                        time.sleep(2)
+                        time.sleep(5)
                         continue
                     return {"error": "查詢路段失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}}
         return {"error": "無匹配路段", "api_response": {"error": "無關鍵字匹配"}}
@@ -203,13 +203,13 @@ class ParkingFinder:
                 if e.response.status_code == 429:
                     logger.error("查詢路段名稱失敗: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
-                        time.sleep(2)
+                        time.sleep(5)
                         continue
                     return {"error": "未知路段 (API 速率限制)", "api_response": {}}
                 elif e.response.status_code == 500:
                     logger.error("查詢路段名稱失敗: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
-                        time.sleep(2)
+                        time.sleep(5)
                         continue
                     try:
                         return {"error": "未知路段 (伺服器錯誤)", "api_response": e.response.json()}
@@ -223,7 +223,7 @@ class ParkingFinder:
             except requests.exceptions.RequestException as e:
                 logger.error("查詢路段名稱失敗: {}".format(str(e)))
                 if attempt < 2:
-                    time.sleep(2)
+                    time.sleep(5)
                     continue
                 return {"error": "未知路段 (查詢失敗)", "api_response": {"error": str(e)}}
 
@@ -262,7 +262,7 @@ class ParkingFinder:
                 if e.response.status_code == 429:
                     logger.error("查詢車位失敗: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
-                        time.sleep(5)  # 增加延遲至 5 秒以應對速率限制
+                        time.sleep(5)
                         continue
                     return {"error": "API 速率限制，請稍後再試", "api_response": {}, "api_responses": {seg_id: {"error": "API 速率限制"} for seg_id in segment_ids}}
                 elif e.response.status_code == 500:
