@@ -19,16 +19,14 @@ app = Flask(__name__)
 chatgpt = ChatGPT()
 parking_finder = ParkingFinder()
 
-
 @app.route('/')
 def home():
-    """根路由，返回簡單問候語"""
+    # 根路由，返回簡單問候語
     return 'Hello, World!'
-
 
 @app.route("/webhook", methods=['POST'])
 def callback():
-    """處理 LINE Webhook 請求"""
+    # 處理 LINE Webhook 請求
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
     try:
@@ -43,10 +41,9 @@ def callback():
         abort(500)
     return 'OK'
 
-
 @line_handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    """處理 LINE 文字訊息"""
+    # 處理 LINE 文字訊息
     global working_status
     message_text = event.message.text.strip()
 
@@ -76,7 +73,7 @@ def handle_message(event):
         except Exception as e:
             # 處理錯誤，返回友善提示
             logger.error("查詢停車位錯誤: {}".format(str(e)))
-            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢停車位失敗，請稍後再試！"))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢停車位失敗，請稍後再試！\n錯誤訊息：{}".format(str(e))))
         return
 
     if working_status:
@@ -89,7 +86,6 @@ def handle_message(event):
         except Exception as e:
             logger.error("AI 回應錯誤: {}".format(str(e)))
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI回應失敗，請稍後再試！"))
-
 
 if __name__ == "__main__":
     app.run()
