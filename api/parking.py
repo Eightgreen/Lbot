@@ -6,7 +6,7 @@ import time
 import re
 from itertools import chain
 from datetime import datetime, timezone
-from .config import address_to_segment, group_config
+from config import address_to_segment, group_config
 
 # 設置日誌記錄，方便除錯
 logger = logging.getLogger(__name__)
