@@ -87,53 +87,105 @@ class ParkingFinder:
                 {"id": "114100A", "name": "裕民二路"},
                 {"id": "1131000", "name": "奎山國小周邊"},
                 {"id": "1131198", "name": "榮華二路19巷8弄"}
+            ],
+            "青年公園": [
+                {"id": "40730A0", "name": "水源路A"},
+                {"id": "4091000", "name": "青年路"},
+                {"id": "4023000", "name": "中華路2段"},
+                {"id": "4117000", "name": "國興路"},
+                {"id": "4023416", "name": "中華路2段416巷"},
+                {"id": "4023364", "name": "中華路二段364巷17弄及24弄"},
+                {"id": "5300000", "name": "雙和街"},
+                {"id": "4023300", "name": "中華路2段300巷13弄"}
             ]
         }
         # 分組配置：每個路段包含自定義群組名稱和車格號範圍
         self.group_config = {
             "1124337": [  # 明德路337巷
-                {"name": "前段北護側", "spots": list(range(1, 27))},
-                {"name": "中段北護側", "spots": list(range(29, 44))},
-                {"name": "後段北護側", "spots": list(range(45, 49))},
-                {"name": "前段住戶側", "spots": list(range(69, 76))},
-                {"name": "中段住戶側", "spots": list(range(61, 68))},
-                {"name": "後段住戶側", "spots": list(range(50, 57))}
+                {"name": "前段北護側", "spots": [str(i) for i in range(1, 27)]},
+                {"name": "中段北護側", "spots": [str(i) for i in range(29, 44)]},
+                {"name": "後段北護側", "spots": [str(i) for i in range(45, 49)]},
+                {"name": "前段住戶側", "spots": [str(i) for i in range(69, 76)]},
+                {"name": "中段住戶側", "spots": [str(i) for i in range(61, 68)]},
+                {"name": "後段住戶側", "spots": [str(i) for i in range(50, 57)]}
             ],
             "1124000": [  # 明德路
-                {"name": "振興一側", "spots": list(range(67, 93))},
-                {"name": "住戶側貨車停車格", "spots": [119]},
-                {"name": "北護一側", "spots": list(range(110, 117))}
+                {"name": "振興一側", "spots": [str(i) for i in range(67, 93)]},
+                {"name": "住戶側貨車停車格", "spots": ["119"]},
+                {"name": "北護一側", "spots": [str(i) for i in range(110, 117)]}
             ],
             "112400A": [  # 明德路A
-                {"name": "前段振興側", "spots": list(range(62, 65))},
-                {"name": "前段住戶側", "spots": list(range(119, 125))},
-                {"name": "後段振興側", "spots": [60]},
-                {"name": "後段住戶側", "spots": list(range(125, 128))}
+                {"name": "前段振興側", "spots": [str(i) for i in range(62, 65)]},
+                {"name": "前段住戶側", "spots": [str(i) for i in range(119, 125)]},
+                {"name": "後段振興側", "spots": ["60"]},
+                {"name": "後段住戶側", "spots": [str(i) for i in range(125, 128)]}
             ],
             "1335000": [  # 裕民六路
-                {"name": "萊爾富", "spots": [18, 19, 20, 25, 26, 27, 39]},
-                {"name": "捷運那段", "spots": list(range(28, 38)) + [1, 2]}
+                {"name": "萊爾富", "spots": ["18", "19", "20", "25", "26", "27", "39"]},
+                {"name": "捷運那段", "spots": [str(i) for i in range(28, 38)] + ["1", "2"]}
             ],
             "1335114": [  # 裕民六路114巷
-                {"name": "50元萊爾富", "spots": [1, 2]},
-                {"name": "50元7-11側", "spots": list(range(6, 14))},
-                {"name": "50元停車場側", "spots": list(range(15, 24))}
+                {"name": "50元萊爾富", "spots": ["1", "2"]},
+                {"name": "50元7-11側", "spots": [str(i) for i in range(6, 14)]},
+                {"name": "50元停車場側", "spots": [str(i) for i in range(15, 24)]}
             ],
             "114100A": [  # 裕民二路
-                {"name": "50元停車場段", "spots": list(chain(range(5, 11), range(34, 38), range(44, 49), [51]))},
-                {"name": "50元熱炒店對面", "spots": list(range(25, 33))},
-                {"name": "50元熱炒店", "spots": list(chain([12], range(14, 22)))},
+                {"name": "50元停車場段", "spots": [str(i) for i in chain(range(5, 11), range(34, 38), range(44, 49))] + ["51"]},
+                {"name": "50元熱炒店對面", "spots": [str(i) for i in range(25, 33)]},
+                {"name": "50元熱炒店", "spots": ["12"] + [str(i) for i in range(14, 22)]},
+                {"name": "全聯一側", "spots": ["58", "61", "62A"]}
             ],
             "1141049": [  # 裕民二路49巷
-                {"name": "全段", "spots": list(range(1, 12))}
+                {"name": "全段", "spots": [str(i) for i in range(1, 12)]}
             ],
             "1131000": [  # 奎山國小周邊
-                {"name": "50元國小後面", "spots": list(range(10, 19))},
-                {"name": "50元小巷", "spots": list(range(21, 26))},
-                {"name": "50元國小後面左轉", "spots": list(range(27, 29))}
+                {"name": "50元國小後面", "spots": [str(i) for i in range(10, 19)]},
+                {"name": "50元小巷", "spots": [str(i) for i in range(21, 26)]},
+                {"name": "50元國小後面左轉", "spots": [str(i) for i in range(27, 29)]}
             ],
             "1131198": [  # 榮華二路19巷8弄
-                {"name": "50元國小後面住戶", "spots": [1, 2]}
+                {"name": "50元國小後面住戶", "spots": ["1", "2"]}
+            ],
+            "40730A0": [  # 水源路A
+                {"name": "國興國宅段", "spots": [str(i) for i in chain(range(4, 11), range(13, 21), range(25, 33))]+ ["10A"]},
+                {"name": "公園管理處", "spots": [str(i) for i in chain(range(39, 45), range(47, 55))]},
+                {"name": "青年公園後段", "spots": [str(i) for i in chain(range(56, 74), range(77, 81))]}
+            ],
+            "4091000": [  # 青年路
+                {"name": "公園一側", "spots": [str(i) for i in chain(range(63, 66), range(68, 78), range(80, 98), range(99, 103))]},
+                {"name": "公園對面", "spots": ["1"] + [str(i) for i in range(3, 11)]},
+                {"name": "中間穿過到棒球段", "spots": ["25"] + [str(i) for i in chain(range(41, 44), range(49, 50))]},
+                {"name": "最遠的網球段", "spots": [str(i) for i in chain(range(56, 74), range(77, 81))]}
+            ],
+            "4023000": [  # 中華路2段
+                {"name": "全聯對面", "spots": [str(i) for i in chain(range(65, 70), range(75, 76))]},
+                {"name": "全聯一側", "spots": ["58", "61", "62A"]},
+                {"name": "四海遊龍對面", "spots": [str(i) for i in chain(range(77, 80), range(82, 83), range(85, 87))]},
+                {"name": "四海遊龍一側", "spots": [str(i) for i in chain(range(42, 45), range(48, 54))]},
+                {"name": "夜市對面前段", "spots": [str(i) for i in chain(range(21, 30))]},
+                {"name": "夜市一側", "spots":["95", "96"]},
+                {"name": "夜市對面中段", "spots": [str(i) for i in chain(range(12, 13), range(15, 16), range(19, 20))]},
+                {"name": "夜市一側尾", "spots": ["11"]},
+                {"name": "夜市對面後段", "spots": ["1"] +[str(i) for i in chain(range(4, 5), range(7, 10))]}
+            ],
+            "4117000": [  # 國興路
+                {"name": "高爾夫段", "spots": [str(i) for i in chain(range(30,43))]},
+                {"name": "幼兒園段", "spots": [str(i) for i in chain(range(3, 8), range(10, 18))]},
+                {"name": "幼兒園對面", "spots": [str(i) for i in chain(range(19, 28))]}
+            ],
+            "4023416": [  # 中華路2段416巷
+                {"name": "美聯社右轉", "spots": [str(i) for i in chain(range(24,30))]},
+                {"name": "美聯社左轉", "spots": [str(i) for i in chain(range(1, 5), [11, 13],range(15,18),range(21,22))]}
+            ],
+            "4023364": [  # 中華路二段364巷17弄及24弄
+                {"name": "美聯社直走", "spots": [str(i) for i in chain( [12, 14],range(20,23))]},
+                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain(range(7,8))]}
+            ],
+            "5300000": [  # 雙和街
+                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain([12,13,17,18,19,24])]}
+            ],
+            "4023300": [  # 中華路2段300巷13弄
+                {"name": "美聯社直走到底", "spots": [str(i) for i in chain( [2, 6],range(43,46), [48])]}
             ]
         }
 
@@ -373,7 +425,8 @@ class ParkingFinder:
         if segment_id in self.group_config:
             all_spots = list(chain(*[group["spots"] for group in self.group_config[segment_id]]))
             if all_spots:
-                max_spot = max(all_spots)
+                # 轉換車格號為可比較格式，僅提取數字部分進行比較
+                max_spot = max(all_spots, key=lambda x: int(re.search(r'\d+', x).group()) if re.search(r'\d+', x) else 0)
                 logger.info("路段 {} 使用 group_config 定義的最高車格號: {}".format(segment_id, max_spot))
                 self.max_spot_cache[segment_id] = max_spot
                 return max_spot
@@ -383,21 +436,21 @@ class ParkingFinder:
             logger.info("從快取取得路段 {} 的最高車格號: {}".format(segment_id, self.max_spot_cache[segment_id]))
             return self.max_spot_cache[segment_id]
 
-        max_spot_number = 0
+        max_spot_number = ""
         batch_size = 50  # 每次查詢 50 個車格，減少 URL 長度
         start_number = 1
         api_call_count = 0  # 記錄 API 請求次數
 
         while True:
             end_number = start_number + batch_size - 1
-            # 構建車格號範圍的過濾條件，支援 2 位或 3 位數字
+            # 構建車格號範圍的過濾條件，支援 2 位或 3 位數字及字母
             filter_conditions = []
             for i in range(start_number, end_number + 1):
                 spot_suffix_2 = "{:02d}".format(i)  # 2 位格式，如 01
                 spot_suffix_3 = "{:03d}".format(i)  # 3 位格式，如 001
                 filter_conditions.append(
-                    "(substring(ParkingSpotID, length(ParkingSpotID)-2, 2) eq '{}' or substring(ParkingSpotID, length(ParkingSpotID)-3, 3) eq '{}')".format(
-                        spot_suffix_2, spot_suffix_3)
+                    "(substring(ParkingSpotID, length(ParkingSpotID)-3, 3) eq '{}' or substring(ParkingSpotID, length(ParkingSpotID)-2, 2) eq '{}')".format(
+                        spot_suffix_3, spot_suffix_2)
                 )
 
             # 構建 API 查詢
@@ -427,21 +480,19 @@ class ParkingFinder:
                     # 解析車格號，更新最大值
                     for spot in spots:
                         spot_id = spot.get("ParkingSpotID", "")
-                        match = re.search(r'(\d{2,3})$', spot_id)
+                        match = re.search(r'(\d+[A-Z]?)$', spot_id)
                         if match:
-                            try:
-                                spot_number = int(match.group(1))
-                                max_spot_number = max(max_spot_number, spot_number)
-                            except ValueError:
-                                continue
+                            spot_number = match.group(1)
+                            if not max_spot_number or (spot_number and int(re.search(r'\d+', spot_number).group()) > int(re.search(r'\d+', max_spot_number).group()) if re.search(r'\d+', max_spot_number) else 0):
+                                max_spot_number = spot_number
 
                     # 若回應包含接近批次上限的車格號，繼續查下一批
-                    if max_spot_number >= end_number - 5:  # 接近上限（留 5 個緩衝）
+                    if max_spot_number and int(re.search(r'\d+', max_spot_number).group()) >= end_number - 5:
                         start_number += batch_size
                         break
                     else:
                         # 無更高車格號，終止查詢
-                        return max_spot_number if max_spot_number > 0 else 0
+                        return max_spot_number if max_spot_number else ""
 
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 429:
@@ -450,26 +501,26 @@ class ParkingFinder:
                         if attempt < 2:
                             time.sleep(2)
                             continue
-                        return 0
+                        return max_spot_number if max_spot_number else ""
                     elif e.response.status_code == 500:
                         logger.error("查詢路段 {} 車格（{}-{}）失敗: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(
                             segment_id, start_number, end_number, attempt + 1))
                         if attempt < 2:
                             time.sleep(2)
                             continue
-                        return max_spot_number if max_spot_number > 0 else 0
+                        return max_spot_number if max_spot_number else ""
                     logger.error("查詢路段 {} 車格（{}-{}）失敗: {}".format(segment_id, start_number, end_number, str(e)))
-                    return max_spot_number if max_spot_number > 0 else 0
+                    return max_spot_number if max_spot_number else ""
                 except requests.exceptions.RequestException as e:
                     logger.error("查詢路段 {} 車格（{}-{}）失敗: {}".format(segment_id, start_number, end_number, str(e)))
                     if attempt < 2:
                         time.sleep(2)
                         continue
-                    return max_spot_number if max_spot_number > 0 else 0
+                    return max_spot_number if max_spot_number else ""
             else:
                 continue  # 若 break 跳出內層迴圈，繼續外層迴圈
 
-        if max_spot_number == 0:
+        if not max_spot_number:
             logger.warning("路段 {} 無車格資料".format(segment_id))
         else:
             # 儲存到快取
@@ -489,7 +540,7 @@ class ParkingFinder:
                 # 使用 group_config 定義的車格號
                 all_spots = list(chain(*[group["spots"] for group in self.group_config[seg_id]]))
                 if all_spots:
-                    max_spot = max(all_spots)
+                    max_spot = max(all_spots, key=lambda x: int(re.search(r'\d+', x).group()) if re.search(r'\d+', x) else 0)
                     max_spot_numbers[seg_id] = max_spot
                     self.max_spot_cache[seg_id] = max_spot
                     logger.info("路段 {} 使用 group_config 定義的最高車格號: {}".format(seg_id, max_spot))
@@ -510,14 +561,14 @@ class ParkingFinder:
 
         while remaining_segments:
             end_number = start_number + batch_size - 1
-            # 構建車格號範圍的過濾條件，支援 2 位或 3 位數字
+            # 構建車格號範圍的過濾條件，支援 2 位或 3 位數字及字母
             filter_conditions = []
             for i in range(start_number, end_number + 1):
                 spot_suffix_2 = "{:02d}".format(i)  # 2 位格式，如 01
                 spot_suffix_3 = "{:03d}".format(i)  # 3 位格式，如 001
                 filter_conditions.append(
-                    "(substring(ParkingSpotID, length(ParkingSpotID)-2, 2) eq '{}' or substring(ParkingSpotID, length(ParkingSpotID)-3, 3) eq '{}')".format(
-                        spot_suffix_2, spot_suffix_3)
+                    "(substring(ParkingSpotID, length(ParkingSpotID)-3, 3) eq '{}' or substring(ParkingSpotID, length(ParkingSpotID)-2, 2) eq '{}')".format(
+                        spot_suffix_3, spot_suffix_2)
                 )
 
             # 構建 API 查詢
@@ -552,17 +603,16 @@ class ParkingFinder:
                         if not segment_id or not spot_id:
                             logger.warning("路段 {} 的車格資料不完整，缺少 ParkingSegmentID 或 ParkingSpotID".format(segment_id))
                             continue
-                        match = re.search(r'(\d{2,3})$', spot_id)
+                        match = re.search(r'(\d+[A-Z]?)$', spot_id)
                         if match:
-                            try:
-                                spot_number = int(match.group(1))
-                                max_spot_numbers[segment_id] = max(max_spot_numbers.get(segment_id, 0), spot_number)
-                            except ValueError:
-                                continue
+                            spot_number = match.group(1)
+                            current_max = max_spot_numbers.get(segment_id, "")
+                            if not current_max or (spot_number and int(re.search(r'\d+', spot_number).group()) > int(re.search(r'\d+', current_max).group()) if re.search(r'\d+', current_max) else 0):
+                                max_spot_numbers[segment_id] = spot_number
 
                     # 更新剩餘路段
                     remaining_segments = [seg_id for seg_id in remaining_segments
-                                         if max_spot_numbers.get(seg_id, 0) >= end_number - 5]
+                                         if max_spot_numbers.get(seg_id, "") and int(re.search(r'\d+', max_spot_numbers[seg_id]).group()) >= end_number - 5]
                     if not remaining_segments:
                         break
                     start_number += batch_size
@@ -594,7 +644,7 @@ class ParkingFinder:
 
         # 儲存到快取並記錄結果
         for seg_id, max_num in max_spot_numbers.items():
-            if max_num > 0:
+            if max_num:
                 self.max_spot_cache[seg_id] = max_num
                 logger.info("路段 {} 的最高車格號 {} 已快取".format(seg_id, max_num))
             else:
@@ -660,10 +710,10 @@ class ParkingFinder:
             if not segment_id or not spot_id or not collect_time:
                 logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime")
                 continue
-            # 解析車格號，支援 2 位或 3 位數字
-            match = re.search(r'(\d{2,3})$', spot_id)
-            spot_number = int(match.group(1)) if match else 0
-            if spot_number == 0:
+            # 解析車格號，支援數字或數字+字母
+            match = re.search(r'(\d+[A-Z]?)$', spot_id)
+            spot_number = match.group(1) if match else None
+            if not spot_number:
                 logger.warning("車格 {} 的 ParkingSpotID 格式無效".format(spot_id))
                 continue
 
@@ -738,8 +788,8 @@ class ParkingFinder:
                 sorted_groups = sorted(segment_info["groups"].items(), key=lambda x: x[1]["count"], reverse=True)
                 for group_name, group_info in sorted_groups:
                     if group_info["count"] > 0:  # 只顯示有空車位的群組
-                        # 按車格號排序
-                        sorted_spots = sorted(group_info["spots"], key=lambda x: x["number"])
+                        # 按車格號排序，僅比較數字部分
+                        sorted_spots = sorted(group_info["spots"], key=lambda x: int(re.search(r'\d+', x["number"]).group()) if re.search(r'\d+', x["number"]) else 0)
                         spot_texts = []
                         for spot in sorted_spots:
                             spot_texts.append("{}(更新於{}分鐘前)".format(spot["number"], spot["minutes_ago"]))
