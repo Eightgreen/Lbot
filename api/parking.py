@@ -49,21 +49,45 @@ class ParkingFinder:
         self.home_address = os.getenv("HOME_ADDRESS", "臺北市中正區")
         # 根據預設地址映射城市
         self.home_city = self._map_city(self.home_address)[0]
-        # 地址到路段代碼的硬編碼映射表，支援模糊查詢並減少 API 呼叫
+        # 地址到路段代碼和名稱的映射表，支援模糊查詢並減少 API 呼叫
         self.address_to_segment = {
-            "明德路337巷": ["1124337"],
-            "明德路": ["1124000"],
-            "明德路A": ["112400A"],
-            "裕民六路": ["1335000"],
-            "裕民六路114巷": ["1335114"],
-            "裕民二路": ["114100A"],
-            "裕民二路49巷": ["1141049"],
-            "奎山國小周邊": ["1131000"],
-            "榮華二路19巷8弄": ["1131198"],
-            "裕民": ["1335000", "1335114", "114100A", "1141049"],
-            "明德": ["1124337", "1124000", "112400A"],
-            "回家": ["1124337", "1124000", "112400A", "1335000", "1335114", "114100A", "1141049", "1131000", "1131198"],
-            "回家計次": ["1335114", "114100A", "1131000", "1131198"]  # 自訂集合
+            "明德路337巷": [{"id": "1124337", "name": "明德路337巷"}],
+            "明德路": [{"id": "1124000", "name": "明德路"}],
+            "明德路A": [{"id": "112400A", "name": "明德路A"}],
+            "裕民六路": [{"id": "1335000", "name": "裕民六路"}],
+            "裕民六路114巷": [{"id": "1335114", "name": "裕民六路114巷"}],
+            "裕民二路": [{"id": "114100A", "name": "裕民二路"}],
+            "裕民二路49巷": [{"id": "1141049", "name": "裕民二路49巷"}],
+            "奎山國小周邊": [{"id": "1131000", "name": "奎山國小周邊"}],
+            "榮華二路19巷8弄": [{"id": "1131198", "name": "榮華二路19巷8弄"}],
+            "裕民": [
+                {"id": "1335000", "name": "裕民六路"},
+                {"id": "1335114", "name": "裕民六路114巷"},
+                {"id": "114100A", "name": "裕民二路"},
+                {"id": "1141049", "name": "裕民二路49巷"}
+            ],
+            "明德": [
+                {"id": "1124337", "name": "明德路337巷"},
+                {"id": "1124000", "name": "明德路"},
+                {"id": "112400A", "name": "明德路A"}
+            ],
+            "回家": [
+                {"id": "1124337", "name": "明德路337巷"},
+                {"id": "1124000", "name": "明德路"},
+                {"id": "112400A", "name": "明德路A"},
+                {"id": "1335000", "name": "裕民六路"},
+                {"id": "1335114", "name": "裕民六路114巷"},
+                {"id": "114100A", "name": "裕民二路"},
+                {"id": "1141049", "name": "裕民二路49巷"},
+                {"id": "1131000", "name": "奎山國小周邊"},
+                {"id": "1131198", "name": "榮華二路19巷8弄"}
+            ],
+            "回家計次": [
+                {"id": "1335114", "name": "裕民六路114巷"},
+                {"id": "114100A", "name": "裕民二路"},
+                {"id": "1131000", "name": "奎山國小周邊"},
+                {"id": "1131198", "name": "榮華二路19巷8弄"}
+            ]
         }
         # 分組配置：每個路段包含自定義群組名稱和車格號範圍
         self.group_config = {
@@ -594,15 +618,15 @@ class ParkingFinder:
         # 檢查是否為自訂集合或單一地址
         if remaining_address in self.address_to_segment:
             for item in self.address_to_segment[remaining_address]:
-                if ":" in item:
+                if ":" in item["id"]:
                     # 自訂集合中的特定群組，例如 "1335000:後段右側"
-                    seg_id, group_name = item.split(":")
+                    seg_id, group_name = item["id"].split(":")
                     segment_ids.append(seg_id)
                     segment_groups[seg_id] = [group_name]
                 else:
                     # 完整路段
-                    segment_ids.append(item)
-                    segment_groups[item] = [g["name"] for g in self.group_config.get(item, [])]
+                    segment_ids.append(item["id"])
+                    segment_groups[item["id"]] = [g["name"] for g in self.group_config.get(item["id"], [])]
         else:
             # 模糊查詢未知地址
             segment_data = self._get_parking_segments(city, remaining_address)
@@ -665,9 +689,19 @@ class ParkingFinder:
 
             # 初始化路段資料結構
             if segment_id not in segment_spots:
-                segment_name = self._get_segment_name(city, segment_id)
-                if isinstance(segment_name, dict) and "error" in segment_name:
-                    return "無法查詢 {} 的空車位資料：{}。\nAPI 回應：{}".format(remaining_address, segment_name["error"], json.dumps(segment_name["api_response"], ensure_ascii=False, indent=2))
+                # 使用 address_to_segment 中的名稱，若不存在則查詢 API
+                segment_name = None
+                for addr, segments in self.address_to_segment.items():
+                    for seg in segments:
+                        if seg["id"] == segment_id:
+                            segment_name = seg["name"]
+                            break
+                    if segment_name:
+                        break
+                if not segment_name:
+                    segment_name = self._get_segment_name(city, segment_id)
+                    if isinstance(segment_name, dict) and "error" in segment_name:
+                        return "無法查詢 {} 的空車位資料：{}。\nAPI 回應：{}".format(remaining_address, segment_name["error"], json.dumps(segment_name["api_response"], ensure_ascii=False, indent=2))
                 segment_spots[segment_id] = {
                     "name": segment_name,
                     "groups": {},
