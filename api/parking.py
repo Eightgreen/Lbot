@@ -60,6 +60,14 @@ class ParkingFinder:
             "裕民二路49巷": [{"id": "1141049", "name": "裕民二路49巷"}],
             "奎山國小周邊": [{"id": "1131000", "name": "奎山國小周邊"}],
             "榮華二路19巷8弄": [{"id": "1131198", "name": "榮華二路19巷8弄"}],
+            "水源路A": [{"id": "40730A0", "name": "水源路A"}],
+            "青年路": [{"id": "4091000", "name": "青年路"}],
+            "中華路2段": [{"id": "4023000", "name": "中華路2段"}],
+            "國興路": [{"id": "4117000", "name": "國興路"}],
+            "中華路2段416巷": [{"id": "4023416", "name": "中華路2段416巷"}],
+            "中華路二段364巷17弄及24弄": [{"id": "4023364", "name": "中華路二段364巷17弄及24弄"}],
+            "雙和街": [{"id": "5300000", "name": "雙和街"}],
+            "中華路2段300巷13弄": [{"id": "4023300", "name": "中華路2段300巷13弄"}],
             "裕民": [
                 {"id": "1335000", "name": "裕民六路"},
                 {"id": "1335114", "name": "裕民六路114巷"},
@@ -80,7 +88,15 @@ class ParkingFinder:
                 {"id": "114100A", "name": "裕民二路"},
                 {"id": "1141049", "name": "裕民二路49巷"},
                 {"id": "1131000", "name": "奎山國小周邊"},
-                {"id": "1131198", "name": "榮華二路19巷8弄"}
+                {"id": "1131198", "name": "榮華二路19巷8弄"},
+                {"id": "40730A0", "name": "水源路A"},
+                {"id": "4091000", "name": "青年路"},
+                {"id": "4023000", "name": "中華路2段"},
+                {"id": "4117000", "name": "國興路"},
+                {"id": "4023416", "name": "中華路2段416巷"},
+                {"id": "4023364", "name": "中華路二段364巷17弄及24弄"},
+                {"id": "5300000", "name": "雙和街"},
+                {"id": "4023300", "name": "中華路2段300巷13弄"}
             ],
             "回家計次": [
                 {"id": "1335114", "name": "裕民六路114巷"},
@@ -147,7 +163,7 @@ class ParkingFinder:
                 {"name": "50元國小後面住戶", "spots": ["1", "2"]}
             ],
             "40730A0": [  # 水源路A
-                {"name": "國興國宅段", "spots": [str(i) for i in chain(range(4, 11), range(13, 21), range(25, 33))]+ ["10A"]},
+                {"name": "國興國宅段", "spots": [str(i) for i in chain(range(4, 11), range(13, 21), range(25, 33))] + ["10A"]},
                 {"name": "公園管理處", "spots": [str(i) for i in chain(range(39, 45), range(47, 55))]},
                 {"name": "青年公園後段", "spots": [str(i) for i in chain(range(56, 74), range(77, 81))]}
             ],
@@ -163,29 +179,29 @@ class ParkingFinder:
                 {"name": "四海遊龍對面", "spots": [str(i) for i in chain(range(77, 80), range(82, 83), range(85, 87))]},
                 {"name": "四海遊龍一側", "spots": [str(i) for i in chain(range(42, 45), range(48, 54))]},
                 {"name": "夜市對面前段", "spots": [str(i) for i in chain(range(21, 30))]},
-                {"name": "夜市一側", "spots":["95", "96"]},
+                {"name": "夜市一側", "spots": ["95", "96"]},
                 {"name": "夜市對面中段", "spots": [str(i) for i in chain(range(12, 13), range(15, 16), range(19, 20))]},
                 {"name": "夜市一側尾", "spots": ["11"]},
-                {"name": "夜市對面後段", "spots": ["1"] +[str(i) for i in chain(range(4, 5), range(7, 10))]}
+                {"name": "夜市對面後段", "spots": ["1"] + [str(i) for i in chain(range(4, 5), range(7, 10))]}
             ],
             "4117000": [  # 國興路
-                {"name": "高爾夫段", "spots": [str(i) for i in chain(range(30,43))]},
+                {"name": "高爾夫段", "spots": [str(i) for i in chain(range(30, 43))]},
                 {"name": "幼兒園段", "spots": [str(i) for i in chain(range(3, 8), range(10, 18))]},
                 {"name": "幼兒園對面", "spots": [str(i) for i in chain(range(19, 28))]}
             ],
             "4023416": [  # 中華路2段416巷
-                {"name": "美聯社右轉", "spots": [str(i) for i in chain(range(24,30))]},
-                {"name": "美聯社左轉", "spots": [str(i) for i in chain(range(1, 5), [11, 13],range(15,18),range(21,22))]}
+                {"name": "美聯社右轉", "spots": [str(i) for i in chain(range(24, 30))]},
+                {"name": "美聯社左轉", "spots": [str(i) for i in chain(range(1, 5), [11, 13], range(15, 18), range(21, 22))]}
             ],
             "4023364": [  # 中華路二段364巷17弄及24弄
-                {"name": "美聯社直走", "spots": [str(i) for i in chain( [12, 14],range(20,23))]},
-                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain(range(7,8))]}
+                {"name": "美聯社直走", "spots": [str(i) for i in chain([12, 14], range(20, 23))]},
+                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain(range(7, 8))]}
             ],
             "5300000": [  # 雙和街
-                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain([12,13,17,18,19,24])]}
+                {"name": "美聯社直走左轉", "spots": [str(i) for i in chain([12, 13, 17, 18, 19, 24])]}
             ],
             "4023300": [  # 中華路2段300巷13弄
-                {"name": "美聯社直走到底", "spots": [str(i) for i in chain( [2, 6],range(43,46), [48])]}
+                {"name": "美聯社直走到底", "spots": [str(i) for i in chain([2, 6], range(43, 46), [48])]}
             ]
         }
 
@@ -364,61 +380,6 @@ class ParkingFinder:
                     time.sleep(2)
                     continue
                 return {"error": "未知路段 (查詢失敗)", "api_response": {"error": str(e)}}
-
-    def _get_parking_spots(self, city, segment_ids):
-        # 查詢指定路段的空車位編號
-        if not segment_ids:
-            return {"error": "無有效的路段 ID", "api_response": {}}
-        url = "https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSpotAvailability/City/{}".format(city)
-        params = {
-            "$format": "JSON",
-            "$top": 100,
-            "$select": "ParkingSpotID,ParkingSegmentID,SpotStatus,DataCollectTime",
-            "$filter": "ParkingSegmentID in ({}) and SpotStatus eq 2".format(
-                ','.join(["'{}'".format(id) for id in segment_ids]))
-        }
-        for attempt in range(3):  # 最多重試 3 次
-            try:
-                response = requests.get(url, headers=self._get_data_header(), params=params)
-                response.raise_for_status()
-                data = response.json()
-                if not data.get("CurbSpotParkingAvailabilities"):
-                    # API 回應成功，但無空車位
-                    return {"status": "no_available_spots", "api_response": data}
-                if not all("ParkingSpotID" in spot and "ParkingSegmentID" in spot and "DataCollectTime" in spot for spot in data["CurbSpotParkingAvailabilities"]):
-                    # 回應缺少必要欄位
-                    return {"error": "API 回應資料不完整，缺少必要欄位", "api_response": data}
-                return data
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 429:
-                    logger.error("查詢車位失敗: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
-                    if attempt < 2:
-                        time.sleep(2)
-                        continue
-                    return {"error": "API 速率限制，請稍後再試", "api_response": {}}
-                elif e.response.status_code == 500:
-                    logger.error("查詢車位失敗: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
-                    if attempt < 2:
-                        time.sleep(2)
-                        continue
-                    try:
-                        return {"error": "伺服器錯誤，請稍後再試", "api_response": e.response.json()}
-                    except ValueError:
-                        return {"error": "伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}}
-                elif e.response.status_code == 401:
-                    logger.error("查詢車位失敗: 未授權 (401 Unauthorized)")
-                    return {"error": "API 認證失敗，請檢查 TDX 金鑰", "api_response": {}}
-                logger.error("查詢車位失敗: {}".format(str(e)))
-                try:
-                    return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": e.response.json()}
-                except ValueError:
-                    return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": {"error": e.response.text}}
-            except requests.exceptions.RequestException as e:
-                logger.error("查詢車位失敗: {}".format(str(e)))
-                if attempt < 2:
-                    time.sleep(2)
-                    continue
-                return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}}
 
     def get_max_spot_number(self, city, segment_id):
         # 檢查 group_config 是否定義了車格範圍
@@ -751,7 +712,7 @@ class ParkingFinder:
                 if not segment_name:
                     segment_name = self._get_segment_name(city, segment_id)
                     if isinstance(segment_name, dict) and "error" in segment_name:
-                        return "無法查詢 {} 的空車位資料：{}。\nAPI 回應：{}".format(remaining_address, segment_name["error"], json.dumps(segment_name["api_response"], ensure_ascii=False, indent=2))
+                        return "無法查詢 {} 的空車位資料：{}。\nAPI 回應：{}".format(remaining_address, segment_name["error"], json.dumps(segment_name.get("api_response", {}), ensure_ascii=False, indent=2))
                 segment_spots[segment_id] = {
                     "name": segment_name,
                     "groups": {},
