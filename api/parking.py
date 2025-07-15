@@ -53,7 +53,6 @@ class ParkingFinder:
         if self.access_token and current_time < self.token_expiry - 60:
             return self.access_token
 
-        # 檢查 Access Token 頻率限制（每分鐘 20 次）
         if current_time - self.last_call_time < 60 and self.api_call_count >= 20:
             logger.warning("接近 Access Token 每分鐘 20 次限制，等待 5 秒")
             time.sleep(5)
@@ -322,6 +321,11 @@ class ParkingFinder:
                 else:
                     segment_ids.append(item["id"])
                     segment_groups[item["id"]] = [g["name"] for g in group_config.get(item["id"], [])]
+            # 優先使用 address_to_segment 的名稱
+            segment_names = {}
+            for item in address_to_segment[remaining_address]:
+                seg_id = item["id"].split(":")[0] if ":" in item["id"] else item["id"]
+                segment_names[seg_id] = item["name"]
         else:
             segment_data = self._get_parking_segments(city, remaining_address)
             if isinstance(segment_data, dict) and "error" in segment_data:
@@ -341,12 +345,12 @@ class ParkingFinder:
                 segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])]
                 if not segment_groups[seg_id]:
                     segment_groups[seg_id] = ["全段"]
-
-        segment_names = self._get_segment_names(city, segment_ids)
-        for seg_id, name_info in segment_names.items():
-            if isinstance(name_info, dict) and "error" in name_info:
-                error_msgs.append(f"無法查詢路段 {seg_id} 的名稱：{name_info['error']}。")
-                api_responses.append(name_info["api_response"])
+            # 若非預定義地址，使用 API 查詢名稱
+            segment_names = self._get_segment_names(city, segment_ids)
+            for seg_id, name_info in segment_names.items():
+                if isinstance(name_info, dict) and "error" in name_info:
+                    error_msgs.append(f"無法查詢路段 {seg_id} 的名稱：{name_info['error']}。")
+                    api_responses.append(name_info["api_response"])
 
         spot_data = self._get_parking_spots(city, segment_ids)
         if isinstance(spot_data, dict) and "error" in spot_data:
@@ -399,18 +403,9 @@ class ParkingFinder:
                 continue
 
             if segment_id not in segment_spots:
-                segment_name = None
-                for addr, segments in address_to_segment.items():
-                    for seg in segments:
-                        if seg["id"] == segment_id:
-                            segment_name = seg["name"]
-                            break
-                    if segment_name:
-                        break
-                if not segment_name:
-                    segment_name = segment_names.get(segment_id, "未知路段")
-                    if isinstance(segment_name, dict):
-                        segment_name = "未知路段"
+                segment_name = segment_names.get(segment_id, "未知路段")
+                if isinstance(segment_name, dict):
+                    segment_name = "未知路段"
                 segment_spots[segment_id] = {
                     "name": segment_name,
                     "groups": {},
