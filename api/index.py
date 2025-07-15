@@ -68,22 +68,31 @@ def handle_message(event):
             return
         try:
             # 調用 ParkingFinder 查詢分組車位
-            reply_msg, error_msg = parking_finder.find_grouped_parking_spots(address)
+            response_text, error_msgs, api_responses = parking_finder.find_grouped_parking_spots(address)
             # 分段發送訊息
             MAX_LINE_MESSAGE_LENGTH = 5000
             messages = []
-            while reply_msg:
-                messages.append(TextSendMessage(text=reply_msg[:MAX_LINE_MESSAGE_LENGTH]))
-                reply_msg = reply_msg[MAX_LINE_MESSAGE_LENGTH:]
-            if not messages:
-                messages.append(TextSendMessage(text="無回應內容"))
-            # 如果有錯誤訊息，作為最後一條發送
-            if error_msg:
-                messages.append(TextSendMessage(text=error_msg))
+            # 分段發送主要回應
+            if response_text:
+                while response_text:
+                    messages.append(TextSendMessage(text=response_text[:MAX_LINE_MESSAGE_LENGTH]))
+                    response_text = response_text[MAX_LINE_MESSAGE_LENGTH:]
+            else:
+                messages.append(TextSendMessage(text="無停車位資訊"))
+            # 分段發送 API 回應
+            for api_response in api_responses:
+                api_text = json.dumps(api_response, ensure_ascii=False, indent=2)
+                while api_text:
+                    messages.append(TextSendMessage(text=api_text[:MAX_LINE_MESSAGE_LENGTH]))
+                    api_text = api_text[MAX_LINE_MESSAGE_LENGTH:]
+            # 最後發送錯誤訊息
+            if error_msgs:
+                for error_msg in error_msgs:
+                    messages.append(TextSendMessage(text=error_msg))
             # LINE 限制最多 5 條訊息
             line_bot_api.reply_message(event.reply_token, messages[:5])
         except Exception as e:
-            # 處理錯誤，返回友善提示
+            # 處理未預期的錯誤
             logger.error("查詢停車位錯誤: {}".format(str(e)))
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢停車位失敗，請稍後再試！\n錯誤訊息：{}".format(str(e))))
         return

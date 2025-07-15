@@ -522,16 +522,22 @@ class ParkingFinder:
 
     def find_grouped_parking_spots(self, address):
         # 查詢指定地址或自訂集合的空車位，按空車位數量排序，包含路段、自定義群組名稱和更新時間
-        # 返回 (response_text, error_msg)，error_msg 為 None 或錯誤訊息
-        error_msg = None
+        # 返回 (response_text, error_msgs, api_responses)
+        error_msgs = []
+        api_responses = []
+        response_text = ""
+
         # 確保輸入為字串
         if not isinstance(address, str):
             logger.error("地址輸入無效: 必須是字串，收到 {}".format(type(address)))
-            return "", "地址輸入無效，請提供有效的地址字串（例如：停車 明德路337巷）"
+            error_msgs.append("地址輸入無效，請提供有效的地址字串（例如：停車 明德路337巷）")
+            return response_text, error_msgs, api_responses
+
         # 先解析城市代碼和剩餘地址
         city, remaining_address = self._map_city(address)
         if not remaining_address:
-            return "", "地址輸入無效，請提供具體的路段或集合名稱（例如：明德路337巷 或 回家）"
+            error_msgs.append("地址輸入無效，請提供具體的路段或集合名稱（例如：明德路337巷 或 回家）")
+            return response_text, error_msgs, api_responses
 
         segment_ids = []
         segment_groups = {}  # 儲存路段和指定群組 {segment_id: [group_name]}
@@ -553,12 +559,16 @@ class ParkingFinder:
             segment_data = self._get_parking_segments(city, remaining_address)
             if isinstance(segment_data, dict) and "error" in segment_data:
                 supported_addresses = ", ".join(address_to_segment.keys())
-                return "", "找不到 {} 的路段資料：{}。\n請嘗試以下地址：{}".format(
-                    remaining_address, segment_data["error"], supported_addresses)
+                error_msgs.append("找不到 {} 的路段資料：{}。\n請嘗試以下地址：{}".format(
+                    remaining_address, segment_data["error"], supported_addresses))
+                api_responses.append(segment_data["api_response"])
+                return response_text, error_msgs, api_responses
             if not isinstance(segment_data, dict) or "ParkingSegments" not in segment_data:
                 supported_addresses = ", ".join(address_to_segment.keys())
-                return "", "找不到 {} 的路段資料，請嘗試以下地址：{}。\nAPI 回應：{}".format(
-                    remaining_address, supported_addresses, json.dumps(segment_data, ensure_ascii=False, indent=2))
+                error_msgs.append("找不到 {} 的路段資料，請嘗試以下地址：{}。".format(
+                    remaining_address, supported_addresses))
+                api_responses.append(segment_data)
+                return response_text, error_msgs, api_responses
             segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"] if "ParkingSegmentID" in s]
             for seg_id in segment_ids:
                 segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])]
@@ -569,8 +579,10 @@ class ParkingFinder:
         # 查詢空車位資料
         spot_data = self._get_parking_spots(city, segment_ids)
         if isinstance(spot_data, dict) and "error" in spot_data:
-            return "", "無法查詢 {} 的空車位資料：{}。".format(
-                remaining_address, spot_data["error"])
+            error_msgs.append("無法查詢 {} 的空車位資料：{}。".format(
+                remaining_address, spot_data["error"]))
+            api_responses.append(spot_data["api_response"])
+            return response_text, error_msgs, api_responses
 
         # 初始化路段結果，計算每個群組的空車位數量和車格資訊
         segment_spots = {}
@@ -633,8 +645,9 @@ class ParkingFinder:
                 if not segment_name:
                     segment_name = self._get_segment_name(city, segment_id)
                     if isinstance(segment_name, dict) and "error" in segment_name:
-                        return "", "無法查詢 {} 的空車位資料：{}。".format(
-                            remaining_address, segment_name["error"])
+                        error_msgs.append("無法查詢路段 {} 的名稱：{}。".format(segment_id, segment_name["error"]))
+                        api_responses.append(segment_name["api_response"])
+                        segment_name = "未知路段"
                 segment_spots[segment_id] = {
                     "name": segment_name,
                     "groups": {},
@@ -655,9 +668,15 @@ class ParkingFinder:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
 
-        # 若無空車位或無有效路段，返回錯誤訊息
+        # 添加 API 回應（即使有空車位）
+        for seg_id in segment_ids:
+            if seg_id in spot_data.get("api_responses", {}):
+                api_responses.append({seg_id: spot_data["api_responses"][seg_id]})
+
+        # 若無空車位或無有效路段，添加錯誤訊息
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()):
-            return "", "目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address)
+            error_msgs.append("目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address))
+            return response_text, error_msgs, api_responses
 
         # 按路段的總空車位數量排序
         sorted_segments = sorted(segment_spots.items(), key=lambda x: x[1]["total_count"], reverse=True)
@@ -683,4 +702,4 @@ class ParkingFinder:
                         response_text += "  {}，空車位數量: {}，車格號: {}\n".format(
                             group_name, group_info["count"], ", ".join(spot_texts))
 
-        return response_text, None
+        return response_text, error_msgs, api_responses
