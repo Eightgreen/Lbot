@@ -3,6 +3,7 @@ import requests
 import logging
 import json
 import re
+import time  # 確保導入 time 模組
 from datetime import datetime, timezone
 from api.config import address_to_segment, group_config
 
@@ -253,9 +254,15 @@ class ParkingFinder:
                 response.raise_for_status()
                 data = response.json()
                 self.api_call_count += 1
-                # 記錄返回的車格 ID
-                spot_ids = [spot.get("ParkingSpotID", "未知") for spot in data.get("CurbSpotParkingAvailabilities", [])]
-                logger.info(f"動態車格查詢返回車格 ID: {spot_ids}")
+                # 記錄返回的車格 ID 和 SpotStatus
+                spot_info = [
+                    {
+                        "ParkingSpotID": spot.get("ParkingSpotID", "未知"),
+                        "SpotStatus": SPOT_STATUS_MAP.get(spot.get("SpotStatus"), f"未知（狀態碼 {spot.get('SpotStatus')})")
+                    }
+                    for spot in data.get("CurbSpotParkingAvailabilities", [])
+                ]
+                logger.info(f"動態車格查詢返回車格: {json.dumps(spot_info, ensure_ascii=False)}")
                 for spot in data.get("CurbSpotParkingAvailabilities", []):
                     seg_id = spot.get("ParkingSegmentID")
                     if seg_id in api_responses:
