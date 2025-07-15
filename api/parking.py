@@ -324,10 +324,10 @@ class ParkingFinder:
                 if ":" in item["id"]:
                     seg_id, group_name = item["id"].split(":")
                     segment_ids.append(seg_id)
-                    segment_groups[seg_id] = [group_name]
+                    segment_groups[seg_id] = segment_groups.get(seg_id, []) + [group_name]
                 else:
                     segment_ids.append(item["id"])
-                    segment_groups[item["id"]] = [g["name"] for g in group_config.get(item["id"], [])]
+                    segment_groups[item["id"]] = [g["name"] for g in group_config.get(item["id"], [])] or ["全段"]
             # 優先使用 address_to_segment 的名稱
             segment_names = {}
             for item in address_to_segment[remaining_address]:
@@ -349,9 +349,7 @@ class ParkingFinder:
                 return response_text, error_msgs, api_responses
             segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"] if "ParkingSegmentID" in s]
             for seg_id in segment_ids:
-                segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])]
-                if not segment_groups[seg_id]:
-                    segment_groups[seg_id] = ["全段"]
+                segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])] or ["全段"]
             segment_names = self._get_segment_names(city, segment_ids)
             for seg_id, name_info in segment_names.items():
                 if isinstance(name_info, dict) and "error" in name_info:
@@ -401,13 +399,16 @@ class ParkingFinder:
             if spot_status == 0 or spot_status == 1:
                 continue
 
+            # 若無群組定義，允許所有車格
             group_name = "全段"
             for group in group_config.get(segment_id, []):
                 if spot_number in group["spots"]:
                     group_name = group["name"]
                     break
 
+            # 僅在指定群組的情況下過濾
             if segment_id in segment_groups and group_name not in segment_groups[segment_id]:
+                logger.debug(f"車格 {spot_id} 被過濾，因群組 {group_name} 不在 segment_groups[{segment_id}]")
                 continue
 
             if segment_id not in segment_spots:
