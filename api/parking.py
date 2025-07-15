@@ -279,10 +279,7 @@ class ParkingFinder:
                     return {"error": "動態車格查詢錯誤：API 速率限制，請稍後再試", "api_response": {}, "api_responses": {seg_id: {"error": "API 速率限制"} for seg_id in batch_ids}}
                 elif e.response.status_code == 500:
                     logger.error("動態車格查詢錯誤: 伺服器錯誤 (500 Internal Server Error)")
-                    try:
-                        return {"error": "動態車格查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json(), "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in batch_ids}}
-                    except ValueError:
-                        return {"error": "動態車格查詢錯誤：伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}, "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in batch_ids}}
+                    return {"error": "動態車格查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json() if e.response.text else {}, "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in batch_ids}}
                 elif e.response.status_code == 401:
                     logger.error("動態車格查詢錯誤: 未授權 (401 Unauthorized)")
                     return {"error": "動態車格查詢錯誤：API 認證失敗，請檢查 TDX 金鑰", "api_response": {}, "api_responses": {seg_id: {"error": "API 認證失敗"} for seg_id in batch_ids}}
@@ -320,6 +317,7 @@ class ParkingFinder:
         segment_groups = {}
 
         if remaining_address in address_to_segment:
+            logger.info(f"地址 {remaining_address} 在 address_to_segment 中，提取路段 ID")
             for item in address_to_segment[remaining_address]:
                 if ":" in item["id"]:
                     seg_id, group_name = item["id"].split(":")
@@ -333,6 +331,7 @@ class ParkingFinder:
             for item in address_to_segment[remaining_address]:
                 seg_id = item["id"].split(":")[0] if ":" in item["id"] else item["id"]
                 segment_names[seg_id] = item["name"]
+            logger.info(f"提取的路段 ID: {segment_ids}, 路段名稱: {segment_names}, 分組: {segment_groups}")
         else:
             segment_data = self._get_parking_segments(city, remaining_address)
             if isinstance(segment_data, dict) and "error" in segment_data:
@@ -355,6 +354,7 @@ class ParkingFinder:
                 if isinstance(name_info, dict) and "error" in name_info:
                     error_msgs.append(f"無法查詢路段 {seg_id} 的名稱：{name_info['error']}。")
                     api_responses.append(name_info["api_response"])
+            logger.info(f"模糊查詢路段 ID: {segment_ids}, 路段名稱: {segment_names}, 分組: {segment_groups}")
 
         spot_data = self._get_parking_spots(city, segment_ids)
         if isinstance(spot_data, dict) and "error" in spot_data:
@@ -371,10 +371,10 @@ class ParkingFinder:
             spot_id = spot.get("ParkingSpotID")
             collect_time = spot.get("DataCollectTime")
             if not segment_id or not spot_id or not collect_time:
-                logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime")
+                logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime，車格: {}".format(spot_id))
                 continue
             match = re.search(r'(\d+[A-Z]?)$', spot_id)
-            spot_number = match.group(1) if match else None
+            spot_number = match.group(1).lstrip('0') if match else None  # 移除前導零以匹配 group_config
             if not spot_number:
                 logger.warning("車格 {} 的 ParkingSpotID 格式無效".format(spot_id))
                 continue
@@ -397,18 +397,22 @@ class ParkingFinder:
 
             # 僅處理空車格和其他異常狀態（排除占用和禁用）
             if spot_status == 0 or spot_status == 1:
+                logger.debug(f"車格 {spot_id} 被忽略，SpotStatus: {spot_status}")
                 continue
 
-            # 若無群組定義，允許所有車格
-            group_name = "全段"
+            # 檢查車格是否在 group_config 定義的範圍內
+            group_name = None
             for group in group_config.get(segment_id, []):
                 if spot_number in group["spots"]:
                     group_name = group["name"]
                     break
+            if group_name is None:
+                logger.debug(f"車格 {spot_id} 被過濾，不在 group_config[{segment_id}] 的 spots 範圍內")
+                continue
 
-            # 僅在指定群組的情況下過濾
+            # 若指定了群組，檢查是否在 segment_groups 中
             if segment_id in segment_groups and group_name not in segment_groups[segment_id]:
-                logger.debug(f"車格 {spot_id} 被過濾，因群組 {group_name} 不在 segment_groups[{segment_id}]")
+                logger.debug(f"車格 {spot_id} 被過濾，群組 {group_name} 不在 segment_groups[{segment_id}]")
                 continue
 
             if segment_id not in segment_spots:
@@ -435,6 +439,7 @@ class ParkingFinder:
             if spot_status == 2:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
+            logger.debug(f"車格 {spot_id} 已錄入，狀態: {status_name}, 分組: {group_name}")
 
         # 包含 API 回應（錯誤或無空車位時）
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()) or error_msgs:
