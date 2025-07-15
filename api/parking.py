@@ -2,7 +2,6 @@ import os
 import requests
 import logging
 import json
-import time
 import re
 from datetime import datetime, timezone
 from api.config import address_to_segment, group_config
@@ -245,10 +244,10 @@ class ParkingFinder:
                 "$format": "JSON",
                 "$top": 100,
                 "$select": "ParkingSpotID,ParkingSegmentID,SpotStatus,DataCollectTime",
-                "$filter": "ParkingSegmentID in ({})".format(','.join(["'{}'".format(id) for id in batch_ids]))
+                "$filter": "ParkingSegmentID in ({}) and SpotStatus ne 1".format(','.join(["'{}'".format(id) for id in batch_ids]))
             }
             try:
-                logger.info(f"開始動態車格查詢，路段 ID: {batch_ids}")
+                logger.info(f"開始動態車格查詢，路段 ID: {batch_ids}, 過濾 SpotStatus != 1")
                 start_time = time.time()
                 response = requests.get(url, headers=self._get_data_header(), params=params, timeout=5)
                 response.raise_for_status()
@@ -263,7 +262,7 @@ class ParkingFinder:
                         api_responses[seg_id]["CurbSpotParkingAvailabilities"].append(spot)
                     all_spots.append(spot)
                 if not data.get("CurbSpotParkingAvailabilities"):
-                    logger.info(f"路段 {batch_ids} 無車格資料")
+                    logger.info(f"路段 {batch_ids} 無符合 SpotStatus != 1 的車格資料")
                     continue
                 if not all("ParkingSpotID" in spot and "ParkingSegmentID" in spot and "DataCollectTime" in spot for spot in data["CurbSpotParkingAvailabilities"]):
                     return {"error": "動態車格查詢錯誤：API 回應資料不完整，缺少必要欄位", "api_response": data, "api_responses": api_responses}
@@ -323,7 +322,7 @@ class ParkingFinder:
                     segment_groups[seg_id] = segment_groups.get(seg_id, []) + [group_name]
                 else:
                     segment_ids.append(item["id"])
-                    segment_groups[item["id"]] = [g["name"] for g in group_config.get(item["id"], [])] or ["全段"]
+                    segment_groups[item["id"]] = [g["name"] for g in group_config.get(item["id"], [])]
             # 優先使用 address_to_segment 的名稱
             segment_names = {}
             for item in address_to_segment[remaining_address]:
@@ -346,7 +345,7 @@ class ParkingFinder:
                 return response_text, error_msgs, api_responses
             segment_ids = [s["ParkingSegmentID"] for s in segment_data["ParkingSegments"] if "ParkingSegmentID" in s]
             for seg_id in segment_ids:
-                segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])] or ["全段"]
+                segment_groups[seg_id] = [g["name"] for g in group_config.get(seg_id, [])]
             segment_names = self._get_segment_names(city, segment_ids)
             for seg_id, name_info in segment_names.items():
                 if isinstance(name_info, dict) and "error" in name_info:
@@ -392,11 +391,6 @@ class ParkingFinder:
                 except (TypeError, ValueError):
                     logger.warning("車格 {} 的 SpotStatus 格式無效: {}".format(spot_id, spot_status))
                     continue
-
-            # 僅處理空車格和其他異常狀態（排除占用和禁用）
-            if spot_status == 0 or spot_status == 1:
-                logger.debug(f"車格 {spot_id} 被忽略，SpotStatus: {spot_status}")
-                continue
 
             # 檢查車格是否在 group_config 定義的範圍內
             group_name = None
