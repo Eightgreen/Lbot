@@ -11,6 +11,14 @@ from api.config import address_to_segment, group_config
 # 設置日誌記錄，方便除錯
 logger = logging.getLogger(__name__)
 
+# 車格狀態映射
+SPOT_STATUS_MAP = {
+    0: "占用",
+    1: "禁用",
+    2: "空位",
+    # 其他未知狀態將顯示為「未知（狀態碼）」
+}
+
 class Auth:
     def __init__(self, app_id, app_key):
         # 初始化認證物件，儲存 TDX API 的 Client ID 和 Client Secret
@@ -146,35 +154,35 @@ class ParkingFinder:
                             seg_name = segment.get("ParkingSegmentName", {}).get("Zh_tw", "未知路段")
                             self.segment_name_cache[seg_id] = seg_name
                         return data
-                    return {"error": "無匹配路段", "api_response": data}
+                    return {"error": "路段查詢錯誤：無匹配路段", "api_response": data}
                 except requests.exceptions.HTTPError as e:
                     if e.response.status_code == 429:
-                        logger.error("模糊查詢路段失敗 (關鍵字: {}): API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(filter_key, attempt + 1))
+                        logger.error("路段查詢錯誤 (關鍵字: {}): API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(filter_key, attempt + 1))
                         if attempt < 2:
                             time.sleep(5)  # 增加延遲至 5 秒
                             continue
-                        return {"error": "API 速率限制，請稍後再試", "api_response": {}}
+                        return {"error": "路段查詢錯誤：API 速率限制，請稍後再試", "api_response": {}}
                     elif e.response.status_code == 500:
-                        logger.error("模糊查詢路段失敗 (關鍵字: {}): 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(filter_key, attempt + 1))
+                        logger.error("路段查詢錯誤 (關鍵字: {}): 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(filter_key, attempt + 1))
                         if attempt < 2:
                             time.sleep(5)
                             continue
                         try:
-                            return {"error": "伺服器錯誤，請稍後再試", "api_response": e.response.json()}
+                            return {"error": "路段查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json()}
                         except ValueError:
-                            return {"error": "伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}}
-                    logger.error("模糊查詢路段失敗 (關鍵字: {}): {}".format(filter_key, str(e)))
+                            return {"error": "路段查詢錯誤：伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}}
+                    logger.error("路段查詢錯誤 (關鍵字: {}): {}".format(filter_key, str(e)))
                     try:
-                        return {"error": "查詢路段失敗，請檢查網路或稍後再試", "api_response": e.response.json()}
+                        return {"error": "路段查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": e.response.json()}
                     except ValueError:
-                        return {"error": "查詢路段失敗，請檢查網路或稍後再試", "api_response": {"error": e.response.text}}
+                        return {"error": "路段查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": {"error": e.response.text}}
                 except requests.exceptions.RequestException as e:
-                    logger.error("模糊查詢路段失敗 (關鍵字: {}): {}".format(filter_key, str(e)))
+                    logger.error("路段查詢錯誤 (關鍵字: {}): {}".format(filter_key, str(e)))
                     if attempt < 2:
                         time.sleep(5)
                         continue
-                    return {"error": "查詢路段失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}}
-        return {"error": "無匹配路段", "api_response": {"error": "無關鍵字匹配"}}
+                    return {"error": "路段查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}}
+        return {"error": "路段查詢錯誤：無匹配路段", "api_response": {"error": "無關鍵字匹配"}}
 
     def _get_segment_name(self, city, segment_id):
         # 查詢指定路段的名稱，先檢查快取
@@ -198,47 +206,45 @@ class ParkingFinder:
                     # 儲存到快取
                     self.segment_name_cache[segment_id] = segment_name
                     return segment_name
-                return {"error": "未知路段", "api_response": data}
+                return {"error": "路段名稱查詢錯誤：未知路段", "api_response": data}
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429:
-                    logger.error("查詢路段名稱失敗: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
+                    logger.error("路段名稱查詢錯誤: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
                         time.sleep(5)
                         continue
-                    return {"error": "未知路段 (API 速率限制)", "api_response": {}}
+                    return {"error": "路段名稱查詢錯誤：API 速率限制", "api_response": {}}
                 elif e.response.status_code == 500:
-                    logger.error("查詢路段名稱失敗: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
+                    logger.error("路段名稱查詢錯誤: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
                         time.sleep(5)
                         continue
                     try:
-                        return {"error": "未知路段 (伺服器錯誤)", "api_response": e.response.json()}
+                        return {"error": "路段名稱查詢錯誤：伺服器錯誤", "api_response": e.response.json()}
                     except ValueError:
-                        return {"error": "未知路段 (伺服器錯誤)", "api_response": {"error": e.response.text}}
-                logger.error("查詢路段名稱失敗: {}".format(str(e)))
+                        return {"error": "路段名稱查詢錯誤：伺服器錯誤", "api_response": {"error": e.response.text}}
+                logger.error("路段名稱查詢錯誤: {}".format(str(e)))
                 try:
-                    return {"error": "未知路段 (查詢失敗)", "api_response": e.response.json()}
+                    return {"error": "路段名稱查詢錯誤：查詢失敗", "api_response": e.response.json()}
                 except ValueError:
-                    return {"error": "未知路段 (查詢失敗)", "api_response": {"error": e.response.text}}
+                    return {"error": "路段名稱查詢錯誤：查詢失敗", "api_response": {"error": e.response.text}}
             except requests.exceptions.RequestException as e:
-                logger.error("查詢路段名稱失敗: {}".format(str(e)))
+                logger.error("路段名稱查詢錯誤: {}".format(str(e)))
                 if attempt < 2:
                     time.sleep(5)
                     continue
-                return {"error": "未知路段 (查詢失敗)", "api_response": {"error": str(e)}}
+                return {"error": "路段名稱查詢錯誤：查詢失敗", "api_response": {"error": str(e)}}
 
     def _get_parking_spots(self, city, segment_ids):
-        # 查詢指定路段的空車位編號，使用單一合併查詢
+        # 查詢指定路段的所有車格狀態（不限於空車位）
         if not segment_ids:
-            return {"error": "無有效的路段 ID", "api_response": {}}
+            return {"error": "動態車格查詢錯誤：無有效的路段 ID", "api_response": {}}
 
         url = "https://tdx.transportdata.tw/api/basic/v1/Parking/OnStreet/ParkingSpotAvailability/City/{}".format(city)
         params = {
             "$format": "JSON",
             "$top": 100,
-            "$select": "ParkingSpotID,ParkingSegmentID,SpotStatus,DataCollectTime",
-            "$filter": "ParkingSegmentID in ({}) and SpotStatus eq 2".format(
-                ','.join(["'{}'".format(id) for id in segment_ids]))
+            "$select": "ParkingSpotID,ParkingSegmentID,SpotStatus,DataCollectTime"
         }
         for attempt in range(3):  # 最多重試 3 次
             try:
@@ -252,42 +258,42 @@ class ParkingFinder:
                     if seg_id in api_responses:
                         api_responses[seg_id]["CurbSpotParkingAvailabilities"].append(spot)
                 if not data.get("CurbSpotParkingAvailabilities"):
-                    # API 回應成功，但無空車位
+                    # API 回應成功，但無車位資料
                     return {"status": "no_available_spots", "api_response": data, "api_responses": api_responses}
                 if not all("ParkingSpotID" in spot and "ParkingSegmentID" in spot and "DataCollectTime" in spot for spot in data["CurbSpotParkingAvailabilities"]):
                     # 回應缺少必要欄位
-                    return {"error": "API 回應資料不完整，缺少必要欄位", "api_response": data, "api_responses": api_responses}
+                    return {"error": "動態車格查詢錯誤：API 回應資料不完整，缺少必要欄位", "api_response": data, "api_responses": api_responses}
                 return {"CurbSpotParkingAvailabilities": data["CurbSpotParkingAvailabilities"], "api_response": data, "api_responses": api_responses}
             except requests.exceptions.HTTPError as e:
                 if e.response.status_code == 429:
-                    logger.error("查詢車位失敗: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
+                    logger.error("動態車格查詢錯誤: API 速率限制 (429 Too Many Requests)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
                         time.sleep(5)
                         continue
-                    return {"error": "API 速率限制，請稍後再試", "api_response": {}, "api_responses": {seg_id: {"error": "API 速率限制"} for seg_id in segment_ids}}
+                    return {"error": "動態車格查詢錯誤：API 速率限制，請稍後再試", "api_response": {}, "api_responses": {seg_id: {"error": "API 速率限制"} for seg_id in segment_ids}}
                 elif e.response.status_code == 500:
-                    logger.error("查詢車位失敗: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
+                    logger.error("動態車格查詢錯誤: 伺服器錯誤 (500 Internal Server Error)，嘗試 {}/3".format(attempt + 1))
                     if attempt < 2:
                         time.sleep(5)
                         continue
                     try:
-                        return {"error": "伺服器錯誤，請稍後再試", "api_response": e.response.json(), "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in segment_ids}}
+                        return {"error": "動態車格查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json(), "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in segment_ids}}
                     except ValueError:
-                        return {"error": "伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}, "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in segment_ids}}
+                        return {"error": "動態車格查詢錯誤：伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}, "api_responses": {seg_id: {"error": "伺服器錯誤"} for seg_id in segment_ids}}
                 elif e.response.status_code == 401:
-                    logger.error("查詢車位失敗: 未授權 (401 Unauthorized)")
-                    return {"error": "API 認證失敗，請檢查 TDX 金鑰", "api_response": {}, "api_responses": {seg_id: {"error": "API 認證失敗"} for seg_id in segment_ids}}
-                logger.error("查詢車位失敗: {}".format(str(e)))
+                    logger.error("動態車格查詢錯誤: 未授權 (401 Unauthorized)")
+                    return {"error": "動態車格查詢錯誤：API 認證失敗，請檢查 TDX 金鑰", "api_response": {}, "api_responses": {seg_id: {"error": "API 認證失敗"} for seg_id in segment_ids}}
+                logger.error("動態車格查詢錯誤: {}".format(str(e)))
                 try:
-                    return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": e.response.json(), "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
+                    return {"error": "動態車格查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": e.response.json(), "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
                 except ValueError:
-                    return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": {"error": e.response.text}, "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
+                    return {"error": "動態車格查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": {"error": e.response.text}, "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
             except requests.exceptions.RequestException as e:
-                logger.error("查詢車位失敗: {}".format(str(e)))
+                logger.error("動態車格查詢錯誤: {}".format(str(e)))
                 if attempt < 2:
                     time.sleep(5)
                     continue
-                return {"error": "查詢車位失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}, "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
+                return {"error": "動態車格查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": {"error": str(e)}, "api_responses": {seg_id: {"error": "查詢失敗"} for seg_id in segment_ids}}
 
     def get_max_spot_number(self, city, segment_id):
         # 檢查 group_config 是否定義了車格範圍
@@ -521,7 +527,7 @@ class ParkingFinder:
         return max_spot_numbers
 
     def find_grouped_parking_spots(self, address):
-        # 查詢指定地址或自訂集合的空車位，按空車位數量排序，包含路段、自定義群組名稱和更新時間
+        # 查詢指定地址或自訂集合的車格狀態，按狀態和數量排序
         # 返回 (response_text, error_msgs, api_responses)
         error_msgs = []
         api_responses = []
@@ -576,15 +582,15 @@ class ParkingFinder:
                 if not segment_groups[seg_id]:
                     segment_groups[seg_id] = ["全段"]
 
-        # 查詢空車位資料
+        # 查詢車格狀態
         spot_data = self._get_parking_spots(city, segment_ids)
         if isinstance(spot_data, dict) and "error" in spot_data:
-            error_msgs.append("無法查詢 {} 的空車位資料：{}。".format(
+            error_msgs.append("無法查詢 {} 的車位資料：{}。".format(
                 remaining_address, spot_data["error"]))
             api_responses.append(spot_data["api_response"])
             return response_text, error_msgs, api_responses
 
-        # 初始化路段結果，計算每個群組的空車位數量和車格資訊
+        # 初始化路段結果，計算每個群組的車格狀態
         segment_spots = {}
         current_time = datetime.now(timezone.utc)
         for spot in spot_data.get("CurbSpotParkingAvailabilities", []):
@@ -620,6 +626,10 @@ class ParkingFinder:
                     logger.warning("車格 {} 的 SpotStatus 格式無效: {}".format(spot_id, spot_status))
                     continue
 
+            # 忽略占用狀態（SpotStatus == 0）
+            if spot_status == 0:
+                continue
+
             # 查找對應群組名稱
             group_name = "全段"  # 預設為全段，適用於模糊查詢的路段
             for group in group_config.get(segment_id, []):
@@ -651,24 +661,26 @@ class ParkingFinder:
                 segment_spots[segment_id] = {
                     "name": segment_name,
                     "groups": {},
-                    "total_count": 0
+                    "total_count": 0  # 僅計算空車位數量
                 }
 
-            # 添加空車位到群組
-            if spot_status == 2:
-                if group_name not in segment_spots[segment_id]["groups"]:
-                    segment_spots[segment_id]["groups"][group_name] = {
-                        "spots": [],
-                        "count": 0
-                    }
-                segment_spots[segment_id]["groups"][group_name]["spots"].append({
-                    "number": spot_number,
-                    "minutes_ago": minutes_ago
-                })
+            # 添加車格狀態到群組（僅空位和其他異常狀態）
+            status_name = SPOT_STATUS_MAP.get(spot_status, f"未知（狀態碼 {spot_status}）")
+            if group_name not in segment_spots[segment_id]["groups"]:
+                segment_spots[segment_id]["groups"][group_name] = {
+                    "spots": [],
+                    "count": 0  # 僅計算空車位數量
+                }
+            segment_spots[segment_id]["groups"][group_name]["spots"].append({
+                "number": spot_number,
+                "status": status_name,
+                "minutes_ago": minutes_ago
+            })
+            if spot_status == 2:  # 僅空車位計入 total_count
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
 
-        # 添加 API 回應（即使有空車位）
+        # 添加 API 回應（即使有車位資料）
         for seg_id in segment_ids:
             if seg_id in spot_data.get("api_responses", {}):
                 api_responses.append({seg_id: spot_data["api_responses"][seg_id]})
@@ -676,30 +688,31 @@ class ParkingFinder:
         # 若無空車位或無有效路段，添加錯誤訊息
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()):
             error_msgs.append("目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address))
-            return response_text, error_msgs, api_responses
+            # 仍保留異常狀態的回應（若有）
+            if not segment_spots:
+                return response_text, error_msgs, api_responses
 
         # 按路段的總空車位數量排序
         sorted_segments = sorted(segment_spots.items(), key=lambda x: x[1]["total_count"], reverse=True)
 
         # 格式化回應文字
-        response_text = " {} 的空車位資訊：\n".format(remaining_address)
+        response_text = " {} 的車位狀態資訊：\n".format(remaining_address)
         for segment_id, segment_info in sorted_segments:
-            if segment_info["total_count"] > 0:  # 只顯示有空車位的路段
-                response_text += "路段: {}\n".format(segment_info["name"])
-                # 按群組的空車位數量排序
-                sorted_groups = sorted(segment_info["groups"].items(), key=lambda x: x[1]["count"], reverse=True)
-                for group_name, group_info in sorted_groups:
-                    if group_info["count"] > 0:  # 只顯示有空車位的群組
-                        # 確保 count 是整數
-                        if not isinstance(group_info["count"], int):
-                            logger.error("群組 {} 的 count 型別錯誤: 收到 {}，應為 int".format(group_name, type(group_info["count"])))
-                            group_info["count"] = int(group_info["count"]) if group_info["count"].isdigit() else 0
-                        # 按車格號排序，僅比較數字部分
-                        sorted_spots = sorted(group_info["spots"], key=lambda x: int(re.search(r'\d+', x["number"]).group()) if re.search(r'\d+', x["number"]) else 0)
-                        spot_texts = []
-                        for spot in sorted_spots:
-                            spot_texts.append("{}(更新於{}分鐘前)".format(spot["number"], spot["minutes_ago"]))
-                        response_text += "  {}，空車位數量: {}，車格號: {}\n".format(
-                            group_name, group_info["count"], ", ".join(spot_texts))
+            response_text += "路段: {}\n".format(segment_info["name"])
+            # 按群組的空車位數量排序
+            sorted_groups = sorted(segment_info["groups"].items(), key=lambda x: x[1]["count"], reverse=True)
+            for group_name, group_info in sorted_groups:
+                if group_info["spots"]:  # 顯示所有非占用車格
+                    # 確保 count 是整數
+                    if not isinstance(group_info["count"], int):
+                        logger.error("群組 {} 的 count 型別錯誤: 收到 {}，應為 int".format(group_name, type(group_info["count"])))
+                        group_info["count"] = int(group_info["count"]) if group_info["count"].isdigit() else 0
+                    # 按車格號排序，僅比較數字部分
+                    sorted_spots = sorted(group_info["spots"], key=lambda x: int(re.search(r'\d+', x["number"]).group()) if re.search(r'\d+', x["number"]) else 0)
+                    spot_texts = []
+                    for spot in sorted_spots:
+                        spot_texts.append("{}（{}，更新於{}分鐘前）".format(spot["number"], spot["status"], spot["minutes_ago"]))
+                    response_text += "  {}，空車位數量: {}，車格狀態: {}\n".format(
+                        group_name, group_info["count"], ", ".join(spot_texts))
 
         return response_text, error_msgs, api_responses

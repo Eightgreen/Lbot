@@ -79,7 +79,7 @@ def handle_message(event):
                     messages.append(TextSendMessage(text=response_text[:MAX_LINE_MESSAGE_LENGTH]))
                     response_text = response_text[MAX_LINE_MESSAGE_LENGTH:]
             else:
-                messages.append(TextSendMessage(text="無停車位資訊"))
+                messages.append(TextSendMessage(text="無停車位或異常狀態資訊"))
             # 分段發送 API 回應
             for api_response in api_responses:
                 api_text = json.dumps(api_response, ensure_ascii=False, indent=2)
