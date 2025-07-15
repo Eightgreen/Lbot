@@ -150,10 +150,7 @@ class ParkingFinder:
                 return {"error": "路段查詢錯誤：API 速率限制，請稍後再試", "api_response": {}}
             elif e.response.status_code == 500:
                 logger.error("路段查詢錯誤 (地址: {}): 伺服器錯誤 (500 Internal Server Error)".format(address))
-                try:
-                    return {"error": "路段查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json()}
-                except ValueError:
-                    return {"error": "路段查詢錯誤：伺服器錯誤，請稍後再試", "api_response": {"error": e.response.text}}
+                return {"error": "路段查詢錯誤：伺服器錯誤，請稍後再試", "api_response": e.response.json() if e.response.text else {}}
             logger.error("路段查詢錯誤 (地址: {}): {}".format(address, str(e)))
             try:
                 return {"error": "路段查詢錯誤：查詢失敗，請檢查網路或稍後再試", "api_response": e.response.json()}
@@ -266,6 +263,7 @@ class ParkingFinder:
                         api_responses[seg_id]["CurbSpotParkingAvailabilities"].append(spot)
                     all_spots.append(spot)
                 if not data.get("CurbSpotParkingAvailabilities"):
+                    logger.info(f"路段 {batch_ids} 無車格資料")
                     continue
                 if not all("ParkingSpotID" in spot and "ParkingSegmentID" in spot and "DataCollectTime" in spot for spot in data["CurbSpotParkingAvailabilities"]):
                     return {"error": "動態車格查詢錯誤：API 回應資料不完整，缺少必要欄位", "api_response": data, "api_responses": api_responses}
@@ -303,13 +301,13 @@ class ParkingFinder:
 
         if not isinstance(address, str):
             logger.error("地址輸入無效: 必須是字串，收到 {}".format(type(address)))
-            error_msgs.append("地址輸入無效，請提供有效的地址字串（例如：停車 明德路337巷）")
+            error_msgs.append("地址輸入無效，請提供有效的地址字串（例如：停車 青年公園）")
             response_text += f"此次查詢共呼叫 {self.api_call_count} 次 API\n"
             return response_text, error_msgs, api_responses
 
         city, remaining_address = self._map_city(address)
         if not remaining_address:
-            error_msgs.append("地址輸入無效，請提供具體的路段或集合名稱（例如：明德路337巷 或 回家）")
+            error_msgs.append("地址輸入無效，請提供具體的路段或集合名稱（例如：青年公園）")
             response_text += f"此次查詢共呼叫 {self.api_call_count} 次 API\n"
             return response_text, error_msgs, api_responses
 
@@ -439,33 +437,32 @@ class ParkingFinder:
             if spot_status == 2:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
-            logger.debug(f"車格 {spot_id} 已錄入，狀態: {status_name}, 分組: {group_name}")
+            logger.debug(f"車格 {spot_id} 已錄入，狀態: {status_name}, 分組: {group_name}, 路段: {segment_spots[segment_id]['name']}")
 
         # 包含 API 回應（錯誤或無空車位時）
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()) or error_msgs:
             for seg_id in segment_ids:
                 if seg_id in spot_data.get("api_responses", {}):
                     api_responses.append({seg_id: spot_data["api_responses"][seg_id]})
-        else:
-            api_responses = []  # 正常情況下不返回 API 回應
+            if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()):
+                error_msgs.append("目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address))
+                response_text += f"此次查詢共呼叫 {self.api_call_count} 次 API\n"
+                return response_text, error_msgs, api_responses
 
-        if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()):
-            error_msgs.append("目前 {} 真的沒有空車位，請稍後再試。".format(remaining_address))
-            response_text += f"此次查詢共呼叫 {self.api_call_count} 次 API\n"
-            return response_text, error_msgs, api_responses
-
-        response_text = " {} 的車位狀態資訊：\n".format(remaining_address)
+        response_text = f" {remaining_address} 的車位狀態資訊：\n"
         sorted_segments = sorted(segment_spots.items(), key=lambda x: x[1]["total_count"], reverse=True)
         for segment_id, segment_info in sorted_segments:
-            response_text += "路段: {}\n".format(segment_info["name"])
+            if segment_info["total_count"] == 0:
+                logger.info(f"路段 {segment_id} ({segment_info['name']}) 無符合 group_config 的空車位")
+                continue
+            response_text += f"路段: {segment_info['name']}\n"
             sorted_groups = sorted(segment_info["groups"].items(), key=lambda x: x[1]["count"], reverse=True)
             for group_name, group_info in sorted_groups:
-                if group_info["spots"]:
-                    sorted_spots = sorted(group_info["spots"], key=lambda x: int(re.search(r'\d+', x["number"]).group()) if re.search(r'\d+', x["number"]) else 0)
-                    spot_texts = []
-                    for spot in sorted_spots:
-                        spot_texts.append(f"{spot['number']}（{spot['status']}，更新於{spot['minutes_ago']}分鐘前）")
-                    response_text += f"  {group_name}，空車位數量: {group_info['count']}，車格狀態: {', '.join(spot_texts)}\n"
+                sorted_spots = sorted(group_info["spots"], key=lambda x: int(re.search(r'\d+', x["number"]).group()) if re.search(r'\d+', x["number"]) else 0)
+                spot_texts = []
+                for spot in sorted_spots:
+                    spot_texts.append(f"{spot['number']}（{spot['status']}，更新於{spot['minutes_ago']}分鐘前）")
+                response_text += f"  {group_name}，空車位數量: {group_info['count']}，車格狀態: {', '.join(spot_texts)}\n"
 
         response_text += f"此次查詢共呼叫 {self.api_call_count} 次 API\n"
         return response_text, error_msgs, api_responses
