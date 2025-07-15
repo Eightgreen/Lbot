@@ -257,7 +257,9 @@ class ParkingFinder:
                 response.raise_for_status()
                 data = response.json()
                 self.api_call_count += 1
-                logger.info(f"動態車格查詢成功，耗時 {time.time() - start_time:.2f} 秒")
+                # 記錄返回的車格 ID
+                spot_ids = [spot.get("ParkingSpotID", "未知") for spot in data.get("CurbSpotParkingAvailabilities", [])]
+                logger.info(f"動態車格查詢返回車格 ID: {spot_ids}")
                 for spot in data.get("CurbSpotParkingAvailabilities", []):
                     seg_id = spot.get("ParkingSegmentID")
                     if seg_id in api_responses:
@@ -267,6 +269,7 @@ class ParkingFinder:
                     continue
                 if not all("ParkingSpotID" in spot and "ParkingSegmentID" in spot and "DataCollectTime" in spot for spot in data["CurbSpotParkingAvailabilities"]):
                     return {"error": "動態車格查詢錯誤：API 回應資料不完整，缺少必要欄位", "api_response": data, "api_responses": api_responses}
+                logger.info(f"動態車格查詢成功，耗時 {time.time() - start_time:.2f} 秒")
             except requests.exceptions.Timeout:
                 logger.error("動態車格查詢錯誤: 請求超時 (504 Gateway Timeout)")
                 return {"error": "動態車格查詢錯誤：請求超時，請稍後再試", "api_response": {}, "api_responses": {seg_id: {"error": "請求超時"} for seg_id in batch_ids}}
@@ -432,8 +435,8 @@ class ParkingFinder:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
 
-        # 僅在 API 錯誤時包含 api_responses
-        if error_msgs:
+        # 包含 API 回應（錯誤或無空車位時）
+        if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()) or error_msgs:
             for seg_id in segment_ids:
                 if seg_id in spot_data.get("api_responses", {}):
                     api_responses.append({seg_id: spot_data["api_responses"][seg_id]})
