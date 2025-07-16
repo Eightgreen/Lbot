@@ -259,7 +259,7 @@ class ParkingFinder:
                     {
                         "ParkingSpotID": spot.get("ParkingSpotID", "未知"),
                         "ParkingSegmentID": spot.get("ParkingSegmentID", "未知"),
-                        "SpotNumber": str(int(re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")).group(1))) if re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")) and re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")).group(1).isdigit() else spot.get("ParkingSpotID", "未知"),
+                        "SpotNumber": spot.get("ParkingSpotID", "未知")[len(spot.get("ParkingSegmentID", "")):].lstrip("0") if spot.get("ParkingSpotID", "").startswith(spot.get("ParkingSegmentID", "")) else spot.get("ParkingSpotID", "未知"),
                         "SpotStatus": SPOT_STATUS_MAP.get(spot.get("SpotStatus"), f"未知（狀態碼 {spot.get('SpotStatus')})")
                     }
                     for spot in data.get("CurbSpotParkingAvailabilities", [])
@@ -379,13 +379,14 @@ class ParkingFinder:
             if not segment_id or not spot_id or not collect_time:
                 logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime，車格: {}".format(spot_id))
                 continue
-            match = re.search(r'(\d+[A-Z]?)$', spot_id)
-            spot_number = match.group(1) if match else None
+            # 移除 ParkingSegmentID 前綴並正規化車格號
+            if spot_id.startswith(segment_id):
+                spot_number = spot_id[len(segment_id):].lstrip("0")
+            else:
+                spot_number = spot_id
             if not spot_number:
                 logger.warning("車格 {} 的 ParkingSpotID 格式無效".format(spot_id))
                 continue
-            # 正規化車格號，移除前導零以匹配 group_config
-            normalized_spot_number = str(int(spot_number)) if spot_number.isdigit() else spot_number
 
             try:
                 collect_dt = datetime.fromisoformat(collect_time.replace('Z', '+00:00'))
@@ -406,11 +407,11 @@ class ParkingFinder:
             # 檢查車格是否在 group_config 定義的範圍內
             group_name = None
             for group in group_config.get(segment_id, []):
-                if normalized_spot_number in group["spots"]:
+                if spot_number in group["spots"]:
                     group_name = group["name"]
                     break
             if group_name is None:
-                logger.debug(f"車格 {spot_id} (提取車格號: {spot_number}, 正規化後: {normalized_spot_number}) 被過濾，不在 group_config[{segment_id}] 的 spots 範圍內")
+                logger.debug(f"車格 {spot_id} (車格號: {spot_number}) 被過濾，不在 group_config[{segment_id}] 的 spots 範圍內")
                 continue
 
             # 若指定了群組，檢查是否在 segment_groups 中
@@ -435,14 +436,14 @@ class ParkingFinder:
                     "count": 0
                 }
             segment_spots[segment_id]["groups"][group_name]["spots"].append({
-                "number": normalized_spot_number,
+                "number": spot_number,
                 "status": status_name,
                 "minutes_ago": minutes_ago
             })
             if spot_status == 2:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
-            logger.debug(f"車格 {spot_id} (車格號: {normalized_spot_number}) 已錄入，狀態: {status_name}, 分組: {group_name}, 路段: {segment_spots[segment_id]['name']}")
+            logger.debug(f"車格 {spot_id} (車格號: {spot_number}) 已錄入，狀態: {status_name}, 分組: {group_name}, 路段: {segment_spots[segment_id]['name']}")
 
         # 包含 API 回應（錯誤或無空車位時）
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()) or error_msgs:
