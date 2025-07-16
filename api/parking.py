@@ -254,10 +254,12 @@ class ParkingFinder:
                 response.raise_for_status()
                 data = response.json()
                 self.api_call_count += 1
-                # 記錄返回的車格 ID 和 SpotStatus
+                # 記錄返回的車格 ID、路段 ID、解析車格號和 SpotStatus
                 spot_info = [
                     {
                         "ParkingSpotID": spot.get("ParkingSpotID", "未知"),
+                        "ParkingSegmentID": spot.get("ParkingSegmentID", "未知"),
+                        "SpotNumber": str(int(re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")).group(1))) if re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")) and re.search(r'(\d+[A-Z]?)$', spot.get("ParkingSpotID", "")).group(1).isdigit() else spot.get("ParkingSpotID", "未知"),
                         "SpotStatus": SPOT_STATUS_MAP.get(spot.get("SpotStatus"), f"未知（狀態碼 {spot.get('SpotStatus')})")
                     }
                     for spot in data.get("CurbSpotParkingAvailabilities", [])
@@ -378,10 +380,12 @@ class ParkingFinder:
                 logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime，車格: {}".format(spot_id))
                 continue
             match = re.search(r'(\d+[A-Z]?)$', spot_id)
-            spot_number = match.group(1) if match else None  # 移除 lstrip('0')，直接使用原始提取結果
+            spot_number = match.group(1) if match else None
             if not spot_number:
                 logger.warning("車格 {} 的 ParkingSpotID 格式無效".format(spot_id))
                 continue
+            # 正規化車格號，移除前導零以匹配 group_config
+            normalized_spot_number = str(int(spot_number)) if spot_number.isdigit() else spot_number
 
             try:
                 collect_dt = datetime.fromisoformat(collect_time.replace('Z', '+00:00'))
@@ -402,8 +406,6 @@ class ParkingFinder:
             # 檢查車格是否在 group_config 定義的範圍內
             group_name = None
             for group in group_config.get(segment_id, []):
-                # 將 spot_number 轉為字符串並移除前導零，與 group_config 格式一致
-                normalized_spot_number = str(int(spot_number)) if spot_number.isdigit() else spot_number
                 if normalized_spot_number in group["spots"]:
                     group_name = group["name"]
                     break
@@ -433,7 +435,7 @@ class ParkingFinder:
                     "count": 0
                 }
             segment_spots[segment_id]["groups"][group_name]["spots"].append({
-                "number": normalized_spot_number,  # 使用正規化後的車格號
+                "number": normalized_spot_number,
                 "status": status_name,
                 "minutes_ago": minutes_ago
             })
