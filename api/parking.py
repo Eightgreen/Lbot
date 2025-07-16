@@ -3,7 +3,7 @@ import requests
 import logging
 import json
 import re
-import time  # 確保導入 time 模組
+import time
 from datetime import datetime, timezone
 from api.config import address_to_segment, group_config
 
@@ -378,7 +378,7 @@ class ParkingFinder:
                 logger.warning("車格資料不完整，缺少 ParkingSegmentID、ParkingSpotID 或 DataCollectTime，車格: {}".format(spot_id))
                 continue
             match = re.search(r'(\d+[A-Z]?)$', spot_id)
-            spot_number = match.group(1).lstrip('0') if match else None  # 移除前導零以匹配 group_config
+            spot_number = match.group(1) if match else None  # 移除 lstrip('0')，直接使用原始提取結果
             if not spot_number:
                 logger.warning("車格 {} 的 ParkingSpotID 格式無效".format(spot_id))
                 continue
@@ -402,11 +402,13 @@ class ParkingFinder:
             # 檢查車格是否在 group_config 定義的範圍內
             group_name = None
             for group in group_config.get(segment_id, []):
-                if spot_number in group["spots"]:
+                # 將 spot_number 轉為字符串並移除前導零，與 group_config 格式一致
+                normalized_spot_number = str(int(spot_number)) if spot_number.isdigit() else spot_number
+                if normalized_spot_number in group["spots"]:
                     group_name = group["name"]
                     break
             if group_name is None:
-                logger.debug(f"車格 {spot_id} 被過濾，不在 group_config[{segment_id}] 的 spots 範圍內")
+                logger.debug(f"車格 {spot_id} (提取車格號: {spot_number}, 正規化後: {normalized_spot_number}) 被過濾，不在 group_config[{segment_id}] 的 spots 範圍內")
                 continue
 
             # 若指定了群組，檢查是否在 segment_groups 中
@@ -431,14 +433,14 @@ class ParkingFinder:
                     "count": 0
                 }
             segment_spots[segment_id]["groups"][group_name]["spots"].append({
-                "number": spot_number,
+                "number": normalized_spot_number,  # 使用正規化後的車格號
                 "status": status_name,
                 "minutes_ago": minutes_ago
             })
             if spot_status == 2:
                 segment_spots[segment_id]["groups"][group_name]["count"] += 1
                 segment_spots[segment_id]["total_count"] += 1
-            logger.debug(f"車格 {spot_id} 已錄入，狀態: {status_name}, 分組: {group_name}, 路段: {segment_spots[segment_id]['name']}")
+            logger.debug(f"車格 {spot_id} (車格號: {normalized_spot_number}) 已錄入，狀態: {status_name}, 分組: {group_name}, 路段: {segment_spots[segment_id]['name']}")
 
         # 包含 API 回應（錯誤或無空車位時）
         if not segment_spots or all(info["total_count"] == 0 for info in segment_spots.values()) or error_msgs:
