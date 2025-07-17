@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import asyncio  # 導入 asyncio 用於非同步監控
 from flask import Flask, request, abort
 from linebot import LineBotApi, WebhookHandler
 from linebot.exceptions import InvalidSignatureError
@@ -47,6 +48,7 @@ def handle_message(event):
     # 處理 LINE 文字訊息
     global working_status
     message_text = event.message.text.strip()
+    user_id = event.source.user_id
 
     if message_text == "啟動":
         # 啟動 AI 回應模式
@@ -62,14 +64,13 @@ def handle_message(event):
 
     if message_text.startswith("停車"):
         # 處理停車查詢指令
-        address = message_text.replace("停車", "").strip()
+        address = message_text[2:].strip()
         if not address:
-            # 若無地址，返回提示
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="請提供路段地址，例如：停車 明德路337巷"))
             return
         try:
             # 調用 ParkingFinder 查詢分組車位
-            response_text, error_msgs, api_responses = parking_finder.find_grouped_parking_spots(address)
+            response_text, error_msgs, api_responses, _ = parking_finder.find_grouped_parking_spots(address)
             # 分段發送訊息
             MAX_LINE_MESSAGE_LENGTH = 5000
             messages = []
@@ -98,6 +99,21 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="查詢停車位失敗，請稍後再試！\n錯誤訊息：{}".format(str(e))))
         return
 
+    if message_text.startswith("監控停車"):
+        # 處理監控停車指令
+        address = message_text[4:].strip()
+        if not address:
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="請提供路段地址，例如：監控停車 青年公園"))
+            return
+        try:
+            # 啟動監控任務（非同步）
+            asyncio.run(parking_finder.monitor_parking_spots(address, user_id, max_duration=60))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="開始監控 {} 的停車位，將在發現新空車位時通知您".format(address)))
+        except Exception as e:
+            logger.error("啟動監控失敗: {}".format(str(e)))
+            line_bot_api.reply_message(event.reply_token, TextSendMessage(text="監控啟動失敗，請稍後再試！\n錯誤訊息：{}".format(str(e))))
+        return
+
     if working_status:
         # 處理一般 AI 回應
         try:
@@ -110,4 +126,4 @@ def handle_message(event):
             line_bot_api.reply_message(event.reply_token, TextSendMessage(text="AI回應失敗，請稍後再試！"))
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
