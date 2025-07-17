@@ -535,7 +535,7 @@ class ParkingFinder:
         response_text += "此次查詢共呼叫 {} 次 API\n".format(self.api_call_count)
         return response_text, error_msgs, api_responses, available_spot_ids
 
-    async def monitor_parking_spots(self, address, user_id, max_duration=60):
+    async def monitor_parking_spots(self, address, user_id, max_duration=600):
         """
         監控指定地址的停車位，每 5 秒查詢一次，直到發現新空車格，推送訊息後結束。
 
