@@ -537,7 +537,7 @@ class ParkingFinder:
 
     async def monitor_parking_spots(self, address, user_id, max_duration=600):
         """
-        監控指定地址的停車位，每 5 秒查詢一次，直到發現新空車格，推送訊息後結束。
+        監控指定地址的停車位，每 5 秒查詢一次，直到發現新空車格（在 group_config 範圍內），推送訊息後結束。
 
         Args:
             address (str): 查詢地址（例如 "回家" 或 "青年公園"）
@@ -562,8 +562,6 @@ class ParkingFinder:
 
         # 監控迴圈
         start_time = time.time()
-        segment_names = self._get_segment_names(self.home_city,
-                                                list(set([spot_id[:len(spot_id) - 3] for spot_id in initial_spot_ids])))
         while time.time() - start_time < max_duration:
             await asyncio.sleep(5)  # 每 5 秒查詢一次
             response, errors, api_responses, current_spot_ids = self.find_grouped_parking_spots(address)
@@ -575,7 +573,9 @@ class ParkingFinder:
             new_spot_ids = current_spot_ids - initial_spot_ids
             if new_spot_ids:
                 logger.info("發現新增空車格: {}".format(new_spot_ids))
-                # 重新查詢以獲取新增車格的詳細資訊
+                # 動態查詢新車格的路段名稱
+                segment_ids = list(set([spot_id[:len(spot_id) - 3] for spot_id in new_spot_ids]))
+                segment_names = self._get_segment_names(self.home_city, segment_ids)
                 new_response = ""
                 for spot_id in new_spot_ids:
                     segment_id = next((seg_id for seg_id in segment_ids if spot_id.startswith(seg_id)), None)
