@@ -48,7 +48,7 @@ class ParkingFinder:
         self.token_expiry = 0
         self.auth_url = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
         self.segment_name_cache = {}
-        self.home_address = os.getenv("HOME_ADDRESS", "臺北市中正區")
+        self.home_address = os.getenv("HOME_ADDRESS", "回家")
         self.home_city = self._map_city(self.home_address)[0]
         self.api_call_count = 0
         self.last_call_time = time.time()
